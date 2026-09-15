@@ -18,7 +18,6 @@ function makeBookWithCard(recipe: Recipe) {
       containerId: 'c1',
       title: recipe.title.fullString(),
       tags: {},
-      visibility: 'edit',
       updatedAt: 1,
     }),
   )

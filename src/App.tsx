@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import './App.css'
 import { CopyLink } from './components/CopyLink'
-import { RecipeDetail } from './components/RecipeDetail'
+import { RecipeDetail, type DetailMode } from './components/RecipeDetail'
 import { RecipeList, type SaveControls } from './components/RecipeList'
 import type { Recipe, RecipeCard } from './fluid/schema'
 import type { RecipeSession } from './fluid/session'
@@ -19,7 +19,7 @@ import {
 type Panel =
   | { status: 'idle' }
   | { status: 'opening'; id: string }
-  | { status: 'open'; card: RecipeCard; recipe: Recipe }
+  | { status: 'open'; card: RecipeCard; recipe: Recipe; mode: DetailMode }
   | { status: 'error'; id: string; message: string }
 
 interface AppProps {
@@ -67,7 +67,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
       try {
         const recipe = await session.select(card)
         if (mine !== request.current) return
-        setPanel({ status: 'open', card, recipe })
+        setPanel({ status: 'open', card, recipe, mode: 'view' })
         setSelectedRecipeId(id)
       } catch (err) {
         if (mine !== request.current) return
@@ -84,7 +84,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
       try {
         const card = await session.createRecipe(title)
         if (mine !== request.current) return
-        setPanel({ status: 'open', card, recipe: session.current!.recipe })
+        setPanel({ status: 'open', card, recipe: session.current!.recipe, mode: 'edit' })
         setSelectedRecipeId(card.id)
       } catch (err) {
         if (mine !== request.current) return
@@ -164,6 +164,8 @@ function App({ session, reload = () => location.reload() }: AppProps) {
 
   const nameOfBook = (id: string) => profileForBook(id)?.name
   const owner = session.isHome ? undefined : nameOfBook(bookId)
+  /** The author is whoever owns the book a recipe was created in. */
+  const isAuthor = (card: RecipeCard) => (card.originBookId ?? bookId) === session.homeBookId
 
   return (
     <main className="app">
@@ -222,6 +224,8 @@ function App({ session, reload = () => location.reload() }: AppProps) {
           card={shown.card}
           onSave={saving ? () => saving.onSave(shown.card.id) : undefined}
           saved={saving?.isSaved(shown.card.id)}
+          initialMode={shown.mode}
+          isAuthor={isAuthor(shown.card)}
         />
       ) : shown.status === 'opening' ? (
         <p className="muted empty-state">Opening…</p>

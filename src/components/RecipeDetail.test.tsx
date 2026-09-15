@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createIndependentTreeView } from 'fluid-framework/beta'
 import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { Duration, Recipe, RecipeCard, recipeConfig } from '../fluid/schema'
+import { Duration, Quantity, Recipe, RecipeCard, recipeConfig } from '../fluid/schema'
 import { makeBookView } from '../test/fakeContainerSource'
 import { RecipeDetail } from './RecipeDetail'
 
@@ -16,7 +16,6 @@ function makeRecipe() {
       containerId: 'container-1',
       title: 'Soup',
       tags: {},
-      visibility: 'edit',
       updatedAt: 1,
     }),
   )
@@ -121,23 +120,59 @@ describe('RecipeDetail', () => {
     expect(unit).toHaveValue('days')
   })
 
-  it('binds the visibility picker to the card both ways', () => {
-    const { card } = renderDetail()
-    const picker = screen.getByRole('combobox', { name: /visibility/i })
-    expect(picker).toHaveValue('edit')
-    expect([...picker.querySelectorAll('option')].map((o) => o.value)).toEqual([
-      'private',
-      'view',
-      'edit',
-    ])
+  it('lets the author toggle whether others may edit, in both modes', () => {
+    const { recipe, card } = makeRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} isAuthor />)
+    const box = screen.getByRole('checkbox', { name: /allow others to edit/i })
+    expect(box).toBeChecked()
 
-    fireEvent.change(picker, { target: { value: 'view' } })
-    expect(card.visibility).toBe('view')
+    fireEvent.click(box)
+    expect(recipe.othersMayEdit).toBe(false)
+    expect(box).not.toBeChecked()
 
     act(() => {
-      card.visibility = 'private'
+      recipe.othersMayEdit = true
     })
-    expect(picker).toHaveValue('private')
+    expect(box).toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: 'View' }))
+    expect(screen.getByRole('checkbox', { name: /allow others to edit/i })).toBeInTheDocument()
+  })
+
+  it('hides the sharing checkbox from everyone but the author', () => {
+    renderDetail()
+    expect(screen.queryByRole('checkbox')).toBeNull()
+  })
+
+  it('holds non-authors in view mode while others may not edit', () => {
+    const { recipe, card } = makeRecipe()
+    recipe.othersMayEdit = false
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="edit" />)
+    expect(document.querySelector('.ql-editor')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'View', pressed: true })).toBeInTheDocument()
+
+    act(() => {
+      recipe.othersMayEdit = true
+    })
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeEnabled()
+    expect(document.querySelector('.ql-editor')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
+
+    act(() => {
+      recipe.othersMayEdit = false
+    })
+    expect(document.querySelector('.ql-editor')).toBeNull()
+    expect(screen.getByRole('button', { name: 'View', pressed: true })).toBeInTheDocument()
+  })
+
+  it('lets the author edit even when others may not', () => {
+    const { recipe, card } = makeRecipe()
+    recipe.othersMayEdit = false
+    render(<RecipeDetail recipe={recipe} card={card} isAuthor />)
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeEnabled()
+    expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
   })
 
   it('offers to save the recipe when a save handler is given', () => {
@@ -250,5 +285,136 @@ describe('RecipeDetail', () => {
     expect(rows('Ingredients')).toHaveLength(1)
     expect(rows('Tags')).toHaveLength(1)
     expect(rows('Notes')).toHaveLength(1)
+  })
+})
+
+describe('RecipeDetail in view mode', () => {
+  function filledRecipe() {
+    const { recipe, card } = makeRecipe()
+    recipe.description.insertAt(0, 'Warm and filling')
+    recipe.servings = 4
+    recipe.prepTime = Duration.create(20, 'minutes')
+    recipe.cookTime = Duration.create(1, 'hours')
+    recipe.sourceUrl.insertAt(0, 'https://example.com/soup')
+    const flour = recipe.ingredients.add()
+    flour.name.insertAt(0, 'flour')
+    flour.quantity = Quantity.create(1.5, 'cup')
+    const eggs = recipe.ingredients.add()
+    eggs.name.insertAt(0, 'eggs')
+    eggs.quantity = Quantity.create(2, 'none')
+    recipe.steps.insertAt(0, 'Simmer gently')
+    recipe.tags.add('dinner')
+    recipe.notes.add('Sam').text.insertAt(0, 'Tasty')
+    return { recipe, card }
+  }
+
+  it('renders the recipe as a page without editors or controls', () => {
+    const { recipe, card } = filledRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    expect(document.querySelector('.ql-editor')).toBeNull()
+    expect(screen.queryByRole('spinbutton')).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(screen.queryByRole('button', { name: /add|remove|move/i })).toBeNull()
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Soup' })).toBeInTheDocument()
+    expect(screen.getByText('Warm and filling')).toBeInTheDocument()
+    expect(screen.getByText(/serves 4/i)).toBeInTheDocument()
+    expect(screen.getByText(/prep 20 minutes/i)).toBeInTheDocument()
+    expect(screen.getByText(/cook 1 hour\b/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'https://example.com/soup' })).toHaveAttribute(
+      'href',
+      'https://example.com/soup',
+    )
+    expect(rows('Ingredients').map((row) => row.textContent)).toEqual(['1.5 cup flour', '2 eggs'])
+    expect(screen.getByText('Simmer gently')).toBeInTheDocument()
+    expect(within(list('Tags')).getByText('dinner')).toBeInTheDocument()
+    const note = rows('Notes')[0]
+    expect(note).toHaveTextContent('Sam')
+    expect(note).toHaveTextContent('Tasty')
+  })
+
+  it('omits sections that have nothing in them', () => {
+    const { recipe, card } = makeRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    expect(screen.getByRole('heading', { level: 2, name: 'Soup' })).toBeInTheDocument()
+    for (const name of [/description/i, /source/i, /ingredients/i, /steps/i, /tags/i, /notes/i]) {
+      expect(screen.queryByRole('heading', { name })).toBeNull()
+    }
+    expect(screen.queryByText(/serves/i)).toBeNull()
+    expect(screen.queryByRole('list')).toBeNull()
+  })
+
+  it('shows a source that is not a web address as plain text', () => {
+    const { recipe, card } = makeRecipe()
+    recipe.sourceUrl.insertAt(0, "Grandma's card")
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    expect(screen.getByText("Grandma's card")).toBeInTheDocument()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('switches between view and edit with the mode toggle', () => {
+    const { recipe, card } = filledRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    expect(screen.getByRole('button', { name: 'View', pressed: true })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('button', { name: 'Edit', pressed: true })).toBeInTheDocument()
+    expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /add ingredient/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'View' }))
+    expect(document.querySelector('.ql-editor')).toBeNull()
+    expect(screen.getByRole('heading', { level: 2, name: 'Soup' })).toBeInTheDocument()
+  })
+
+  it('starts in edit mode when no initial mode is given', () => {
+    renderDetail()
+    expect(screen.getByRole('button', { name: 'Edit', pressed: true })).toBeInTheDocument()
+    expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
+  })
+
+  it('keeps the save button available in view mode', () => {
+    const onSave = vi.fn()
+    renderDetail({ onSave, saved: false, initialMode: 'view' })
+    fireEvent.click(screen.getByRole('button', { name: /save to my book/i }))
+    expect(onSave).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows a section the moment its empty text gains content', () => {
+    const { recipe, card } = makeRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    expect(screen.queryByRole('heading', { name: /description/i })).toBeNull()
+
+    act(() => {
+      recipe.description.insertAt(0, 'Warm')
+    })
+    expect(screen.getByRole('heading', { name: /description/i })).toBeInTheDocument()
+    expect(screen.getByText('Warm')).toBeInTheDocument()
+
+    act(() => {
+      recipe.steps.insertAt(0, 'Simmer')
+    })
+    expect(screen.getByText('Simmer')).toBeInTheDocument()
+
+    act(() => {
+      recipe.sourceUrl.insertAt(0, 'https://example.com')
+    })
+    expect(screen.getByRole('link', { name: 'https://example.com' })).toBeInTheDocument()
+
+    act(() => {
+      recipe.description.removeRange(0, 4)
+    })
+    expect(screen.queryByRole('heading', { name: /description/i })).toBeNull()
+  })
+
+  it('follows changes to the recipe while viewing', () => {
+    const { recipe, card } = makeRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    act(() => {
+      recipe.description.insertAt(0, 'Yum')
+      recipe.ingredients.add().name.insertAt(0, 'salt')
+    })
+    expect(screen.getByText('Yum')).toBeInTheDocument()
+    expect(rows('Ingredients').map((row) => row.textContent)).toEqual(['salt'])
   })
 })

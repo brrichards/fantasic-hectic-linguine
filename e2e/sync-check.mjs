@@ -21,8 +21,9 @@ const recipeButton = (page, title) =>
   page
     .locator('.recipe-list-title')
     .filter({ has: page.locator('.card-title', { hasText: new RegExp(`^${title}$`) }) })
-const waitForDetail = (page) =>
-  page.getByRole('list', { name: 'Ingredients' }).waitFor({ state: 'attached' })
+const waitForDetail = (page) => page.getByRole('article').waitFor()
+/** An existing recipe opens rendered as a page; this switches it to its editors. */
+const enterEditMode = (page) => page.getByRole('button', { name: 'Edit', exact: true }).click()
 const titleEditor = '.recipe-detail .rich-text-line .ql-editor'
 const ingredientEditors = '[aria-label="Ingredients"] li .ql-editor'
 const stepEditors = '.steps .ql-editor'
@@ -79,8 +80,10 @@ try {
 
   await alice.reload()
   await waitForDetail(alice)
+  await alice.getByRole('heading', { level: 2, name: 'Soup of the day' }).waitFor()
+  await enterEditMode(alice)
   await waitForEditorText(alice, titleEditor, 0, 'Soup of the day')
-  console.log("Alice refreshed and landed back on the recipe she had open")
+  console.log('Alice refreshed and landed back on the recipe she had open, rendered as a page')
 
   const bob = await newTab('bob')
   await bob.goto(BASE)
@@ -96,6 +99,7 @@ try {
 
   await recipeButton(bob, 'Soup of the day').click()
   await waitForDetail(bob)
+  await enterEditMode(bob)
   await bob.getByRole('button', { name: 'Add ingredient' }).click()
   await bob.locator(ingredientEditors).nth(0).click()
   await bob.keyboard.type('carrots')
@@ -122,6 +126,7 @@ try {
 
   await recipeButton(bob, 'Soup of the day').click()
   await waitForDetail(bob)
+  await enterEditMode(bob)
   await bob.locator(stepEditors).nth(0).click()
   await bob.keyboard.type('Simmer')
   await waitForEditorText(alice, stepEditors, 0, 'Simmer')

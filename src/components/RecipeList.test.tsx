@@ -14,7 +14,6 @@ function card(title: string, overrides: Partial<ConstructorParameters<typeof Rec
     containerId: `container-${title}`,
     title,
     tags: {},
-    visibility: 'edit',
     updatedAt: 1,
     ...overrides,
   })

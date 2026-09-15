@@ -116,7 +116,6 @@ export class RecipeSession {
         title: card.title,
         tags: Object.fromEntries([...card.tags.keys()].map((tag) => [tag, true])),
         originBookId: card.originBookId,
-        visibility: card.visibility,
         updatedAt: Date.now(),
       }),
     )
@@ -139,7 +138,6 @@ export class RecipeSession {
         title: recipe.title.fullString(),
         tags: {},
         originBookId: this.bookId,
-        visibility: 'edit',
         updatedAt: Date.now(),
       }),
     )

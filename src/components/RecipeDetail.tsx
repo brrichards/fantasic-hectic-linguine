@@ -4,17 +4,18 @@ import {
   durationUnits,
   Quantity,
   quantityUnits,
-  visibilities,
   type Ingredient,
   type Note,
   type QuantityUnit,
   type Recipe,
   type RecipeCard,
   type RichText,
-  type Visibility,
 } from '../fluid/schema'
 import { useNode } from '../hooks/useNode'
 import { RichTextEditor } from '../text/RichTextEditor'
+import { RecipeView } from './RecipeView'
+
+export type DetailMode = 'view' | 'edit'
 
 interface RecipeDetailProps {
   recipe: Recipe
@@ -23,43 +24,90 @@ interface RecipeDetailProps {
   /** When given, offers to save this recipe into the user's own book. */
   onSave?: () => void
   saved?: boolean
+  /** Whether the recipe opens rendered as a page or in its editors. */
+  initialMode?: DetailMode
+  /** The author decides whether others may edit and is never locked out. */
+  isAuthor?: boolean
 }
 
-export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDetailProps) {
-  useNode(recipe)
-  useNode(recipe.ingredients)
-  useNode(recipe.tags)
-  useNode(recipe.notes)
+export function RecipeDetail({
+  recipe,
+  card,
+  onSave,
+  saved = false,
+  initialMode = 'edit',
+  isAuthor = false,
+}: RecipeDetailProps) {
   useNode(card)
+  useNode(recipe)
+  const canEdit = isAuthor || recipe.othersMayEdit
+  const [mode, setMode] = useState<DetailMode>(canEdit ? initialMode : 'view')
+  // Losing edit rights drops the panel back to the page, and it stays there.
+  const [wasEditable, setWasEditable] = useState(canEdit)
+  if (wasEditable !== canEdit) {
+    setWasEditable(canEdit)
+    if (!canEdit) setMode('view')
+  }
+  const shownMode: DetailMode = canEdit ? mode : 'view'
+
+  const saveButton = onSave && (
+    <button type="button" className="save-button" disabled={saved} onClick={onSave}>
+      {saved ? 'Saved' : 'Save to my book'}
+    </button>
+  )
 
   return (
     <article className="recipe-detail">
       <section className="card-controls">
-        <label className="number-field">
-          Visibility
-          <select
-            value={card.visibility}
-            onChange={(event) => (card.visibility = event.target.value as Visibility)}
+        <span className="mode-toggle" role="group" aria-label="Mode">
+          <button type="button" aria-pressed={shownMode === 'view'} onClick={() => setMode('view')}>
+            View
+          </button>
+          <button
+            type="button"
+            aria-pressed={shownMode === 'edit'}
+            disabled={!canEdit}
+            title={canEdit ? undefined : 'The author has not allowed editing'}
+            onClick={() => setMode('edit')}
           >
-            {visibilities.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
+            Edit
+          </button>
+        </span>
+        {isAuthor && (
+          <label className="checkbox-field">
+            <input
+              type="checkbox"
+              checked={recipe.othersMayEdit}
+              onChange={(event) => (recipe.othersMayEdit = event.target.checked)}
+            />
+            Allow others to edit
+          </label>
+        )}
       </section>
+      {shownMode === 'view' ? (
+        <RecipeView recipe={recipe} titleControls={saveButton} />
+      ) : (
+        <RecipeEditor recipe={recipe} titleControls={saveButton} />
+      )}
+    </article>
+  )
+}
 
+/** Every field of the recipe in its editor. */
+function RecipeEditor({ recipe, titleControls }: { recipe: Recipe; titleControls?: React.ReactNode }) {
+  useNode(recipe)
+  useNode(recipe.ingredients)
+  useNode(recipe.tags)
+  useNode(recipe.notes)
+
+  return (
+    <div className="recipe-editor">
       <section className="title-row">
         <div>
           <h3>Title</h3>
           <RichTextEditor node={recipe.title} variant="line" placeholder="Recipe title" />
         </div>
-        {onSave && (
-          <button type="button" className="save-button" disabled={saved} onClick={onSave}>
-            {saved ? 'Saved' : 'Save to my book'}
-          </button>
-        )}
+        {titleControls}
       </section>
 
       <section>
@@ -138,7 +186,7 @@ export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDeta
         </ul>
         <AddForm label="Note author" button="Add note" onSubmit={(author) => recipe.notes.add(author)} />
       </section>
-    </article>
+    </div>
   )
 }
 

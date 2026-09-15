@@ -45,7 +45,7 @@ async function seed(session: RecipeSession, title: string) {
   return card
 }
 
-const ingredientsList = () => screen.findByRole('list', { name: 'Ingredients' })
+const detailPanel = () => screen.findByRole('article')
 
 afterEach(() => {
   Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
@@ -120,7 +120,7 @@ describe('App on the home book', () => {
     const soup = await seed(session, 'Soup')
     render(<App session={session} reload={reload} />)
     fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
-    expect(await ingredientsList()).toBeInTheDocument()
+    expect(await detailPanel()).toBeInTheDocument()
     expect(getSelectedRecipeId()).toBe(soup.id)
   })
 
@@ -131,10 +131,43 @@ describe('App on the home book', () => {
       target: { value: 'Bread' },
     })
     fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
-    expect(await screen.findByRole('list', { name: 'Ingredients' })).toBeInTheDocument()
+    expect(await detailPanel()).toBeInTheDocument()
     expect(home.cards.length).toBe(1)
     expect(home.cards[0].title).toBe('Bread')
     expect(getSelectedRecipeId()).toBe(home.cards[0].id)
+  })
+
+  it('opens a newly created recipe in edit mode', async () => {
+    const { session, reload } = setup()
+    render(<App session={session} reload={reload} />)
+    fireEvent.change(screen.getByRole('textbox', { name: /new recipe/i }), {
+      target: { value: 'Bread' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
+    const detail = await detailPanel()
+    expect(within(detail).getByRole('button', { name: 'Edit', pressed: true })).toBeInTheDocument()
+    expect(detail.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
+  })
+
+  it('opens an existing recipe in view mode', async () => {
+    const { session, reload } = setup()
+    await seed(session, 'Soup')
+    render(<App session={session} reload={reload} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
+    const detail = await detailPanel()
+    expect(within(detail).getByRole('button', { name: 'View', pressed: true })).toBeInTheDocument()
+    expect(detail.querySelector('.ql-editor')).toBeNull()
+    expect(within(detail).getByRole('heading', { level: 2, name: 'Soup' })).toBeInTheDocument()
+  })
+
+  it('shows the sharing checkbox on your own recipe', async () => {
+    const { session, reload } = setup()
+    await seed(session, 'Soup')
+    render(<App session={session} reload={reload} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
+    const detail = await detailPanel()
+    expect(within(detail).getByRole('checkbox', { name: /allow others to edit/i })).toBeChecked()
+    expect(within(detail).getByRole('button', { name: 'Edit' })).toBeEnabled()
   })
 
   it('reopens the recipe this tab had open', async () => {
@@ -142,7 +175,7 @@ describe('App on the home book', () => {
     const soup = await seed(session, 'Soup')
     setSelectedRecipeId(soup.id)
     render(<App session={session} reload={reload} />)
-    expect(await ingredientsList()).toBeInTheDocument()
+    expect(await detailPanel()).toBeInTheDocument()
   })
 
   it('forgets a remembered recipe that no longer exists', async () => {
@@ -159,7 +192,7 @@ describe('App on the home book', () => {
     await seed(session, 'Soup')
     render(<App session={session} reload={reload} />)
     fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
-    await ingredientsList()
+    await detailPanel()
     act(() => {
       home.cards.removeAt(0)
     })
@@ -176,7 +209,6 @@ describe('App on the home book', () => {
         containerId: 'container-missing',
         title: 'Ghost',
         tags: {},
-        visibility: 'edit',
         updatedAt: 1,
       }),
     )
@@ -209,9 +241,22 @@ describe('App visiting another book', () => {
       target: { value: 'Bread' },
     })
     fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
-    await screen.findByRole('list', { name: 'Ingredients' })
+    await detailPanel()
     expect(theirs.cards.map((c) => c.title)).toEqual(['Soup', 'Bread'])
     expect(home.cards.length).toBe(0)
+  })
+
+  it('locks their recipe to view mode when they do not allow editing', async () => {
+    const { session, reload } = setup({ browsing: true })
+    await session.createRecipe('Soup')
+    session.current!.recipe.othersMayEdit = false
+    session.deselect()
+    render(<App session={session} reload={reload} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
+    const detail = await detailPanel()
+    expect(within(detail).queryByRole('checkbox')).toBeNull()
+    expect(within(detail).getByRole('button', { name: 'Edit' })).toBeDisabled()
+    expect(within(detail).getByRole('button', { name: /save to my book/i })).toBeInTheDocument()
   })
 
   it('saves a card into the home book from the list', async () => {
@@ -229,7 +274,7 @@ describe('App visiting another book', () => {
     const soup = await seed(session, 'Soup')
     render(<App session={session} reload={reload} />)
     fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
-    await ingredientsList()
+    await detailPanel()
     const detail = screen.getByRole('article')
     fireEvent.click(within(detail).getByRole('button', { name: /save to my book/i }))
     expect(home.cards.findById(soup.id)).toBeDefined()
@@ -244,7 +289,6 @@ describe('App visiting another book', () => {
         title: 'Soup',
         tags: {},
         originBookId: THEIRS,
-        visibility: 'edit',
         updatedAt: 1,
       }),
     )

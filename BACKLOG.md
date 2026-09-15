@@ -20,4 +20,4 @@ A Quill link is an inline attribute, not an embed. Add `link?: string` as an opt
 
 ## Access enforcement
 
-`visibility` on cards is stored, not enforced. Enforcement needs a service that issues per-container tokens (Azure Fluid Relay or self-hosted Routerlicious) plus a directory service that maps users to book and recipe containers. Read-only tokens should mount Quill with `readOnly` and hide add, move, and remove controls.
+`othersMayEdit` on recipes is honored by the UI, not enforced by the service. Enforcement needs a service that issues per-container tokens (Azure Fluid Relay or self-hosted Routerlicious) plus a directory service that maps users to book and recipe containers. Read-only tokens should lock the detail panel in view mode the same way the UI does today when the flag is off.

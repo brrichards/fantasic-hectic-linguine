@@ -157,6 +157,8 @@ export class Recipe extends sf.object('Recipe', {
   steps: RichText,
   tags: Tags,
   notes: Notes,
+  /** Whether people other than the author may switch the recipe into edit mode. */
+  othersMayEdit: SchemaFactoryBeta.boolean,
 }) {
   /** A blank recipe with the given title. Pass `id` to share it with the recipe's card. */
   static create(title: string, id?: string): Recipe {
@@ -169,6 +171,7 @@ export class Recipe extends sf.object('Recipe', {
       steps: RichText.fromString(''),
       tags: [],
       notes: [],
+      othersMayEdit: true,
     })
   }
 }
@@ -176,9 +179,6 @@ export class Recipe extends sf.object('Recipe', {
 export const recipeConfig = new TreeViewConfiguration({ schema: Recipe })
 
 // --- Recipe book: one container per user, holding a card per recipe -------
-
-export const visibilities = ['private', 'view', 'edit'] as const
-export type Visibility = (typeof visibilities)[number]
 
 /**
  * A set of tag strings keyed by tag. A map, not an array, so two clients that
@@ -198,7 +198,6 @@ export class RecipeCard extends sf.object('RecipeCard', {
   title: SchemaFactoryBeta.string,
   tags: CardTags,
   originBookId: sf.optional(SchemaFactoryBeta.string),
-  visibility: SchemaFactoryBeta.string,
   updatedAt: SchemaFactoryBeta.number,
 }) {}
 

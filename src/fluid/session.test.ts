@@ -36,7 +36,6 @@ describe('RecipeSession on the home book', () => {
     expect(log).toEqual(['create container-1', 'card added'])
     expect(card.containerId).toBe('container-1')
     expect(card.title).toBe('Soup')
-    expect(card.visibility).toBe('edit')
     expect(card.id).toBe(views.get('container-1')!.root.id)
     expect(home.root.cards.findById(card.id)).toBe(card)
   })
@@ -144,7 +143,6 @@ describe('RecipeSession on the home book', () => {
         containerId: 'container-999',
         title: 'Ghost',
         tags: {},
-        visibility: 'edit',
         updatedAt: 1,
       }),
     )
@@ -204,7 +202,6 @@ describe('RecipeSession browsing another book', () => {
     const original = await session.createRecipe('Soup')
     await flush()
     session.current!.recipe.tags.add('dinner')
-    original.visibility = 'view'
 
     const saved = session.saveToHome(original)
 
@@ -215,7 +212,6 @@ describe('RecipeSession browsing another book', () => {
     expect(saved.containerId).toBe(original.containerId)
     expect(saved.title).toBe('Soup')
     expect([...saved.tags.keys()]).toEqual(['dinner'])
-    expect(saved.visibility).toBe('view')
     expect(saved.originBookId).toBe('theirs')
     expect(theirs.root.cards.length).toBe(1)
   })

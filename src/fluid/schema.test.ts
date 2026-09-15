@@ -9,7 +9,6 @@ import {
   RichText,
   bookConfig,
   recipeConfig,
-  visibilities,
 } from './schema'
 
 /** A hydrated recipe, as it would be the root of a recipe container. */
@@ -31,7 +30,6 @@ function makeCard(overrides: Partial<ConstructorParameters<typeof RecipeCard>[0]
     containerId: 'container-1',
     title: 'Soup',
     tags: {},
-    visibility: 'edit',
     updatedAt: 1000,
     ...overrides,
   })
@@ -120,7 +118,6 @@ describe('RecipeBook and cards', () => {
     expect(card.id.length).toBeGreaterThan(0)
     expect(card.containerId).toBe('container-1')
     expect(card.title).toBe('Soup')
-    expect(card.visibility).toBe('edit')
     expect(card.originBookId).toBeUndefined()
   })
 
@@ -157,8 +154,8 @@ describe('RecipeBook and cards', () => {
     expect(book.cards.length).toBe(1)
   })
 
-  it('lists the visibility values the UI may offer', () => {
-    expect(visibilities).toEqual(['private', 'view', 'edit'])
+  it('lets others edit a new recipe by default', () => {
+    expect(makeRecipe('Soup').othersMayEdit).toBe(true)
   })
 })
 

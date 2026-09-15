@@ -182,7 +182,60 @@ button:disabled {
 
 .card-controls {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85em;
+}
+
+.mode-toggle {
+  display: inline-flex;
+}
+
+.mode-toggle button {
+  border-radius: 0;
+}
+
+.mode-toggle button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.mode-toggle button:last-child {
+  border-radius: 0 4px 4px 0;
+  margin-left: -1px;
+}
+
+.mode-toggle button[aria-pressed='true'] {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
+  position: relative;
+}
+
+.recipe-view-title {
+  margin: 0;
+}
+
+.recipe-view .title-row {
+  margin-bottom: 0.5rem;
+}
+
+.recipe-summary {
+  margin-bottom: 1.5rem;
+}
+
+.ingredient-list {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.note-view {
+  margin-bottom: 1rem;
 }
 
 .title-row {

@@ -76,10 +76,9 @@ There are two kinds of Fluid container, because Fluid syncs and secures per
 container and containers cannot nest.
 
 - A **book container**, one per user, whose root is `RecipeBook { cards }`. Each
-  `RecipeCard` holds the searchable fields of one recipe (title, tags, visibility,
-  updated time), the id of that recipe's own container, and `originBookId`, the
-  book the recipe was created in, which stands in for its author until profiles
-  exist. Cards are a projection: nothing edits their title or tags by hand. Tags on a card are a map
+  `RecipeCard` holds the searchable fields of one recipe (title, tags, updated
+  time), the id of that recipe's own container, and `originBookId`, the book the
+  recipe was created in, which stands in for its author until profiles exist. Cards are a projection: nothing edits their title or tags by hand. Tags on a card are a map
   keyed by tag rather than an array, so two clients projecting the same recipe at
   once converge to one entry per tag; an array would keep both inserts.
 - A **recipe container**, one per recipe, whose root is `Recipe`. This is the
@@ -136,12 +135,20 @@ open go stale until someone opens that recipe from that book.
   `prose` variant has a toolbar; the `line` variant swallows Enter and strips
   pasted newlines. A re-entrancy flag stops local edits echoing back through the
   tree subscription. Quill's history module is off; there is no undo/redo yet.
+- `src/text/RichTextView.tsx` — the read-only rendering of a `RichText` node as
+  plain elements (headings, lists, checklists, blockquote, code block, bold,
+  italic, underline), built from the same `buildDeltaFromTree` walk the editor
+  uses. It subscribes to the node, so remote edits show while viewing.
 - `src/hooks/useNode.ts` — `useSyncExternalStore` over `Tree.on(node, ...)` for
   non-text state, scoped per node so keystrokes in an editor never re-render the
   surrounding shell.
 - `src/components/` — `RecipeList` (cards, add, remove, select, save), `RecipeDetail`
-  (every field of one recipe, the visibility picker, and ingredient, step, tag,
-  and note rows), and `CopyLink`. `App` holds the header with the profile picker,
+  (a View / Edit toggle, an author-only "Allow others to edit" checkbox bound to
+  `Recipe.othersMayEdit`, and either every field of one recipe in its editor or
+  `RecipeView`, the read-only page that omits empty sections), and `CopyLink`. An
+  existing recipe opens in view mode; a recipe you just created opens in edit mode.
+  When the author turns editing off, everyone else is held in view mode with the
+  Edit tab disabled. The author is whoever owns the recipe's origin book. `App` holds the header with the profile picker,
   the book id for sharing, and the visit form. Changing book (profile, visit, or
   home) reloads the page, since book containers are loaded once.
 - `src/test/fakeContainerSource.ts` — an in-memory `ContainerSource` for tests.
@@ -150,9 +157,9 @@ See `BACKLOG.md` for designed but unscheduled slices.
 
 ## Known limitations
 
-- Tinylicious enforces no access control. A card's `visibility` is stored and
-  shown but not enforced, and anyone with a book URL can read every card, private
-  ones included. Enforcement needs a service that issues per-container tokens.
+- Tinylicious enforces no access control. `othersMayEdit` on a recipe is honored
+  by this client's UI only; anyone with a book id can read every card, and a
+  modified client could still write to any container.
 - Profiles are a local list of names and book ids, and Alice and Bob are created
   on first use. Real sign-in would supply the book id from a backend instead.
   Container ids cannot be chosen by the client with this stack, so a profile's
