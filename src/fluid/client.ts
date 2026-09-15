@@ -1,6 +1,14 @@
 import { TinyliciousClient } from '@fluidframework/tinylicious-client'
-import { SharedTree, TreeViewConfiguration, type TreeView } from 'fluid-framework'
-import { Counter } from './schema'
+import {
+  ConnectionState,
+  SharedTree,
+  type IFluidContainer,
+  type ImplicitFieldSchema,
+  type TreeView,
+  type TreeViewConfiguration,
+} from 'fluid-framework'
+import { Recipe, RecipeBook, bookConfig, recipeConfig } from './schema'
+import type { BookHandle, ContainerSource, OpenedRecipe } from './session'
 
 const client = new TinyliciousClient()
 
@@ -8,22 +16,82 @@ const containerSchema = {
   initialObjects: { tree: SharedTree },
 } as const
 
-const treeConfig = new TreeViewConfiguration({ schema: Counter })
+type RecipeContainer = IFluidContainer<typeof containerSchema>
+
+async function openExisting<TSchema extends ImplicitFieldSchema>(
+  id: string,
+  config: TreeViewConfiguration<TSchema>,
+): Promise<{ container: RecipeContainer; view: TreeView<TSchema> }> {
+  const { container } = await client.getContainer(id, containerSchema, '3.0.0')
+  const view = container.initialObjects.tree.viewWith(config)
+  if (view.compatibility.canInitialize) {
+    throw new Error(`Container ${id} exists but its tree was never initialized`)
+  }
+  if (!view.compatibility.canView) {
+    if (!view.compatibility.canUpgrade) {
+      throw new Error(`Container ${id} has a schema this client cannot read`)
+    }
+    view.upgradeSchema()
+  }
+  return { container, view }
+}
+
+async function createNew<TSchema extends ImplicitFieldSchema>(
+  config: TreeViewConfiguration<TSchema>,
+): Promise<{ container: RecipeContainer; view: TreeView<TSchema> }> {
+  const { container } = await client.createContainer(containerSchema, '3.0.0')
+  const view = container.initialObjects.tree.viewWith(config)
+  if (!view.compatibility.canInitialize) {
+    throw new Error('New container is not safe to initialize')
+  }
+  return { container, view }
+}
+
+/** Resolves once every local edit has been acknowledged by the service. */
+function whenSaved(container: RecipeContainer): Promise<void> {
+  if (!container.isDirty) return Promise.resolve()
+  return new Promise((resolve) => container.once('saved', () => resolve()))
+}
+
+/** Resolves once the container is connected and caught up on every op. */
+function whenConnected(container: RecipeContainer): Promise<void> {
+  if (container.connectionState === ConnectionState.Connected) return Promise.resolve()
+  return new Promise((resolve) => container.once('connected', () => resolve()))
+}
+
+function opened(container: RecipeContainer, view: TreeView<typeof Recipe>): OpenedRecipe {
+  return {
+    view,
+    dispose: () => container.dispose(),
+    whenSaved: () => whenSaved(container),
+    whenConnected: () => whenConnected(container),
+  }
+}
 
 /**
- * Loads the container named by the URL hash, or creates a new one (and sets
- * the hash) so the URL can be shared with other clients to join the session.
+ * Opens the book container with the given id, or creates a new empty book
+ * when no id is given. Returns the id so the caller can put it in the URL.
  */
-export async function loadCounterView(): Promise<TreeView<typeof Counter>> {
-  const existingId = location.hash.slice(1)
-  if (existingId) {
-    const { container } = await client.getContainer(existingId, containerSchema, '3.0.0')
-    return container.initialObjects.tree.viewWith(treeConfig)
+export async function loadBook(bookId?: string): Promise<BookHandle> {
+  if (bookId) {
+    const { container, view } = await openExisting(bookId, bookConfig)
+    return { view, bookId, whenSaved: () => whenSaved(container) }
   }
+  const { container, view } = await createNew(bookConfig)
+  view.initialize(new RecipeBook({ cards: [] }))
+  return { view, bookId: await container.attach(), whenSaved: () => whenSaved(container) }
+}
 
-  const { container } = await client.createContainer(containerSchema, '3.0.0')
-  const view = container.initialObjects.tree.viewWith(treeConfig)
-  view.initialize(new Counter({ count: 0 }))
-  location.hash = await container.attach()
-  return view
+/** Recipe containers on tinylicious. */
+export const tinyliciousSource: ContainerSource = {
+  async createRecipe(recipe: Recipe) {
+    const { container, view } = await createNew(recipeConfig)
+    view.initialize(recipe)
+    const containerId = await container.attach()
+    return { containerId, ...opened(container, view) }
+  },
+  async openRecipe(containerId: string) {
+    const { container, view } = await openExisting(containerId, recipeConfig)
+    return opened(container, view)
+  },
 }
