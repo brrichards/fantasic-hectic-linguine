@@ -1,6 +1,7 @@
 .app {
   display: grid;
   grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
   gap: 1.5rem;
   padding: 1.5rem;
   text-align: left;
@@ -10,12 +11,15 @@
 @media (max-width: 720px) {
   .app {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
   }
 }
 
 .recipe-list {
   border-right: 1px solid var(--border);
   padding-right: 1rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .recipe-detail section {
@@ -34,14 +38,25 @@ h3 {
   margin: 0 0 0.5rem;
 }
 
+.recipe-list .plain-list {
+  margin-top: 0.75rem;
+}
+
+.recipe-list-empty {
+  padding: 0.75rem 0.6rem 0;
+}
+
 .recipe-list-item {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .recipe-list-title {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   text-align: left;
   background: none;
   border: none;
@@ -170,6 +185,8 @@ button:disabled {
 
 .card-title {
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .card-tags {
@@ -238,25 +255,38 @@ select {
 .app-header {
   grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1.25rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border);
+}
+
+.book-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .profile-picker {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
   color: var(--text-h);
 }
 
 .copy-link {
   display: inline-flex;
+  flex-wrap: nowrap;
   gap: 0.35rem;
   align-items: center;
   max-width: 100%;
+}
+
+.copy-link button {
+  white-space: nowrap;
 }
 
 .copy-link input {

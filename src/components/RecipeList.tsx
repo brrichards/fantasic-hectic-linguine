@@ -56,7 +56,7 @@ export function RecipeList({
         <button type="submit">Add recipe</button>
       </form>
       {cards.length === 0 ? (
-        <p className="muted">No recipes yet.</p>
+        <p className="muted recipe-list-empty">No recipes yet.</p>
       ) : (
         <ul className="plain-list">
           {cards.map((card) => (

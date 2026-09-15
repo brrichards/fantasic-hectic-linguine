@@ -168,21 +168,23 @@ function App({ session, reload = () => location.reload() }: AppProps) {
   return (
     <main className="app">
       <header className="app-header">
-        <label className="profile-picker">
-          You are
-          <select
-            aria-label="You are"
-            value={session.homeBookId}
-            onChange={(event) => switchProfile(event.target.value)}
-          >
-            {profiles.map((profile) => (
-              <option key={profile.bookId} value={profile.bookId}>
-                {profile.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <CopyLink label="Copy book id" url={shareableId(bookId)} />
+        <div className="book-identity">
+          <label className="profile-picker">
+            You are
+            <select
+              aria-label="You are"
+              value={session.homeBookId}
+              onChange={(event) => switchProfile(event.target.value)}
+            >
+              {profiles.map((profile) => (
+                <option key={profile.bookId} value={profile.bookId}>
+                  {profile.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <CopyLink label="Copy book id" url={shareableId(bookId)} />
+        </div>
         <form onSubmit={submitVisit} className="inline-form visit-book">
           <input
             aria-label="Book id to visit"
