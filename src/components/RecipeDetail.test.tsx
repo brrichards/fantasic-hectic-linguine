@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createIndependentTreeView } from 'fluid-framework/beta'
 import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { Recipe, RecipeCard, recipeConfig } from '../fluid/schema'
+import { Duration, Recipe, RecipeCard, recipeConfig } from '../fluid/schema'
 import { makeBookView } from '../test/fakeContainerSource'
 import { RecipeDetail } from './RecipeDetail'
 
@@ -39,20 +39,21 @@ describe('RecipeDetail', () => {
     const { recipe, card } = makeRecipe()
     recipe.description.insertAt(0, 'Warm and filling')
     recipe.sourceUrl.insertAt(0, 'https://example.com')
+    recipe.steps.insertAt(0, 'Simmer gently')
     render(<RecipeDetail recipe={recipe} card={card} />)
     const texts = [...document.querySelectorAll('.ql-editor')].map((el) => el.textContent)
     expect(texts).toContain('Soup')
     expect(texts).toContain('Warm and filling')
     expect(texts).toContain('https://example.com')
+    expect(texts).toContain('Simmer gently')
+    expect(screen.queryByRole('button', { name: /add step/i })).toBeNull()
   })
 
-  it('binds the numeric fields both ways', () => {
+  it('binds the servings field both ways', () => {
     const { recipe, card } = makeRecipe()
-    recipe.prepMinutes = 10
     render(<RecipeDetail recipe={recipe} card={card} />)
     const servings = screen.getByRole('spinbutton', { name: /servings/i })
     expect(servings).toHaveValue(null)
-    expect(screen.getByRole('spinbutton', { name: /prep/i })).toHaveValue(10)
 
     fireEvent.change(servings, { target: { value: '4' } })
     expect(recipe.servings).toBe(4)
@@ -60,9 +61,64 @@ describe('RecipeDetail', () => {
     expect(recipe.servings).toBeUndefined()
 
     act(() => {
-      recipe.cookMinutes = 25
+      recipe.servings = 6
     })
-    expect(screen.getByRole('spinbutton', { name: /cook/i })).toHaveValue(25)
+    expect(servings).toHaveValue(6)
+  })
+
+  it('shows a stored duration with its unit', () => {
+    const { recipe, card } = makeRecipe()
+    recipe.prepTime = Duration.create(10, 'minutes')
+    render(<RecipeDetail recipe={recipe} card={card} />)
+    expect(screen.getByRole('spinbutton', { name: /prep time/i })).toHaveValue(10)
+    expect(screen.getByRole('combobox', { name: /prep time unit/i })).toHaveValue('minutes')
+
+    act(() => {
+      recipe.cookTime = Duration.create(2, 'days')
+    })
+    expect(screen.getByRole('spinbutton', { name: /cook time/i })).toHaveValue(2)
+    expect(screen.getByRole('combobox', { name: /cook time unit/i })).toHaveValue('days')
+  })
+
+  it('stores a duration in the unit chosen before the number was typed', () => {
+    const { recipe, card } = makeRecipe()
+    render(<RecipeDetail recipe={recipe} card={card} />)
+    const unit = screen.getByRole('combobox', { name: /prep time unit/i })
+    const amount = screen.getByRole('spinbutton', { name: /prep time/i })
+    expect(unit).toHaveValue('minutes')
+    expect([...unit.querySelectorAll('option')].map((o) => o.value)).toEqual([
+      'minutes',
+      'hours',
+      'days',
+    ])
+
+    fireEvent.change(unit, { target: { value: 'hours' } })
+    expect(recipe.prepTime).toBeUndefined()
+    expect(unit).toHaveValue('hours')
+
+    fireEvent.change(amount, { target: { value: '1.5' } })
+    expect(recipe.prepTime?.value).toBe(1.5)
+    expect(recipe.prepTime?.unit).toBe('hours')
+  })
+
+  it('changes the unit of a stored duration and rounds to hundredths', () => {
+    const { recipe, card } = makeRecipe()
+    recipe.cookTime = Duration.create(3, 'hours')
+    render(<RecipeDetail recipe={recipe} card={card} />)
+    const unit = screen.getByRole('combobox', { name: /cook time unit/i })
+    const amount = screen.getByRole('spinbutton', { name: /cook time/i })
+
+    fireEvent.change(unit, { target: { value: 'days' } })
+    expect(recipe.cookTime?.value).toBe(3)
+    expect(recipe.cookTime?.unit).toBe('days')
+
+    fireEvent.change(amount, { target: { value: '1.239' } })
+    expect(recipe.cookTime?.value).toBe(1.24)
+    expect(amount).toHaveValue(1.24)
+
+    fireEvent.change(amount, { target: { value: '' } })
+    expect(recipe.cookTime).toBeUndefined()
+    expect(unit).toHaveValue('days')
   })
 
   it('binds the visibility picker to the card both ways', () => {
@@ -109,9 +165,29 @@ describe('RecipeDetail', () => {
     expect(recipe.ingredients.length).toBe(1)
     expect(rows('Ingredients')).toHaveLength(1)
 
-    const quantity = within(rows('Ingredients')[0]).getByRole('spinbutton', { name: /quantity/i })
-    fireEvent.change(quantity, { target: { value: '2.5' } })
-    expect(recipe.ingredients[0].quantity).toBe(2.5)
+    const row = within(rows('Ingredients')[0])
+    const quantity = row.getByRole('spinbutton', { name: /quantity/i })
+    const unit = row.getByRole('combobox', { name: /quantity unit/i })
+    expect(unit).toHaveValue('none')
+    expect([...unit.querySelectorAll('option')].map((o) => o.value)).toEqual([
+      'none',
+      'tsp',
+      'tbsp',
+      'cup',
+      'fl oz',
+      'ml',
+      'l',
+      'oz',
+      'lb',
+      'g',
+      'kg',
+      'pinch',
+    ])
+    fireEvent.change(unit, { target: { value: 'cup' } })
+    fireEvent.change(quantity, { target: { value: '2.555' } })
+    expect(recipe.ingredients[0].quantity?.value).toBe(2.56)
+    expect(recipe.ingredients[0].quantity?.unit).toBe('cup')
+    expect(quantity).toHaveValue(2.56)
 
     fireEvent.click(within(rows('Ingredients')[0]).getByRole('button', { name: /remove/i }))
     expect(recipe.ingredients.length).toBe(0)
@@ -122,7 +198,7 @@ describe('RecipeDetail', () => {
     const { recipe, card } = makeRecipe()
     for (const name of ['flour', 'eggs', 'milk']) recipe.ingredients.add().name.insertAt(0, name)
     render(<RecipeDetail recipe={recipe} card={card} />)
-    const names = () => rows('Ingredients').map((row) => editorTexts(row)[1])
+    const names = () => rows('Ingredients').map((row) => editorTexts(row)[0])
     expect(names()).toEqual(['flour', 'eggs', 'milk'])
 
     fireEvent.click(within(rows('Ingredients')[2]).getByRole('button', { name: /move up/i }))
@@ -135,21 +211,11 @@ describe('RecipeDetail', () => {
 
   it('disables move up on the first row and move down on the last', () => {
     const { recipe, card } = makeRecipe()
-    recipe.steps.add()
-    recipe.steps.add()
+    recipe.ingredients.add()
+    recipe.ingredients.add()
     render(<RecipeDetail recipe={recipe} card={card} />)
-    expect(within(rows('Steps')[0]).getByRole('button', { name: /move up/i })).toBeDisabled()
-    expect(within(rows('Steps')[1]).getByRole('button', { name: /move down/i })).toBeDisabled()
-  })
-
-  it('adds and removes steps', () => {
-    const { recipe } = renderDetail()
-    fireEvent.click(screen.getByRole('button', { name: /add step/i }))
-    fireEvent.click(screen.getByRole('button', { name: /add step/i }))
-    expect(recipe.steps.length).toBe(2)
-    expect(rows('Steps')).toHaveLength(2)
-    fireEvent.click(within(rows('Steps')[0]).getByRole('button', { name: /remove/i }))
-    expect(recipe.steps.length).toBe(1)
+    expect(within(rows('Ingredients')[0]).getByRole('button', { name: /move up/i })).toBeDisabled()
+    expect(within(rows('Ingredients')[1]).getByRole('button', { name: /move down/i })).toBeDisabled()
   })
 
   it('adds a tag from the tag form and removes it', () => {
@@ -178,12 +244,10 @@ describe('RecipeDetail', () => {
     const { recipe } = renderDetail()
     act(() => {
       recipe.ingredients.add()
-      recipe.steps.add()
       recipe.tags.add('quick')
       recipe.notes.add('Sam')
     })
     expect(rows('Ingredients')).toHaveLength(1)
-    expect(rows('Steps')).toHaveLength(1)
     expect(rows('Tags')).toHaveLength(1)
     expect(rows('Notes')).toHaveLength(1)
   })

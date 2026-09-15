@@ -56,39 +56,44 @@ function gapFor(from: number, to: number): number {
   return to > from ? to + 1 : to
 }
 
+export const quantityUnits = [
+  'none',
+  'tsp',
+  'tbsp',
+  'cup',
+  'fl oz',
+  'ml',
+  'l',
+  'oz',
+  'lb',
+  'g',
+  'kg',
+  'pinch',
+] as const
+export type QuantityUnit = (typeof quantityUnits)[number]
+
+/** How much of an ingredient: a value to two decimal places and a kitchen unit. */
+export class Quantity extends sf.object('Quantity', {
+  value: SchemaFactoryBeta.number,
+  unit: SchemaFactoryBeta.string,
+}) {
+  /** Rounds `value` to hundredths so nothing finer than that is ever stored. */
+  static create(value: number, unit: QuantityUnit): Quantity {
+    return new Quantity({ value: roundToHundredths(value), unit })
+  }
+}
+
 export class Ingredient extends sf.object('Ingredient', {
   id: sf.identifier,
-  quantity: sf.optional(SchemaFactoryBeta.number),
-  unit: RichText,
   name: RichText,
-  note: RichText,
+  quantity: sf.optional(Quantity),
 }) {}
 
 export class Ingredients extends sf.array('Ingredients', Ingredient) {
   add(): Ingredient {
-    const ingredient = new Ingredient({
-      unit: RichText.fromString(''),
-      name: RichText.fromString(''),
-      note: RichText.fromString(''),
-    })
+    const ingredient = new Ingredient({ name: RichText.fromString('') })
     this.insertAtEnd(ingredient)
     return ingredient
-  }
-  move(from: number, to: number): void {
-    if (from !== to) this.moveToIndex(gapFor(from, to), from)
-  }
-}
-
-export class Step extends sf.object('Step', {
-  id: sf.identifier,
-  text: RichText,
-}) {}
-
-export class Steps extends sf.array('Steps', Step) {
-  add(): Step {
-    const step = new Step({ text: RichText.fromString('') })
-    this.insertAtEnd(step)
-    return step
   }
   move(from: number, to: number): void {
     if (from !== to) this.moveToIndex(gapFor(from, to), from)
@@ -122,6 +127,23 @@ export class Tags extends sf.array('Tags', RichText) {
   }
 }
 
+/** Rounds half up at the second decimal; the epsilon keeps 1.005 from landing on 1. */
+const roundToHundredths = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
+
+export const durationUnits = ['minutes', 'hours', 'days'] as const
+export type DurationUnit = (typeof durationUnits)[number]
+
+/** A length of time as it was entered: a value to two decimal places and its unit. */
+export class Duration extends sf.object('Duration', {
+  value: SchemaFactoryBeta.number,
+  unit: SchemaFactoryBeta.string,
+}) {
+  /** Rounds `value` to hundredths so nothing finer than that is ever stored. */
+  static create(value: number, unit: DurationUnit): Duration {
+    return new Duration({ value: roundToHundredths(value), unit })
+  }
+}
+
 /** The root of a recipe container. One container per recipe. */
 export class Recipe extends sf.object('Recipe', {
   id: sf.identifier,
@@ -129,10 +151,10 @@ export class Recipe extends sf.object('Recipe', {
   description: RichText,
   sourceUrl: RichText,
   servings: sf.optional(SchemaFactoryBeta.number),
-  prepMinutes: sf.optional(SchemaFactoryBeta.number),
-  cookMinutes: sf.optional(SchemaFactoryBeta.number),
+  prepTime: sf.optional(Duration),
+  cookTime: sf.optional(Duration),
   ingredients: Ingredients,
-  steps: Steps,
+  steps: RichText,
   tags: Tags,
   notes: Notes,
 }) {
@@ -144,7 +166,7 @@ export class Recipe extends sf.object('Recipe', {
       description: RichText.fromString(''),
       sourceUrl: RichText.fromString(''),
       ingredients: [],
-      steps: [],
+      steps: RichText.fromString(''),
       tags: [],
       notes: [],
     })

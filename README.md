@@ -101,10 +101,14 @@ open go stale until someone opens that recipe from that book.
   `FormattedText.createSchema` over a `CharacterFormat` of bold, italic, and
   underline plus a `LineAtom` that carries Quill's line formatting (headers, lists,
   blockquote, code block) on a newline. `Recipe` has a title, description, source
-  URL, optional servings and prep/cook minutes, and ordered `Ingredients`, `Steps`,
-  `Tags`, and `Notes`; `Recipe.create(title, id?)` builds a blank one. `RecipeBook`
+  URL, optional servings, optional prep and cook times (a `Duration`: a value to
+  two decimal places plus a unit of minutes, hours, or days), `steps` as one rich text,
+  and ordered `Ingredients`, `Tags`, and `Notes`; `Recipe.create(title, id?)` builds a
+  blank one. An `Ingredient`
+  is a name plus an optional `Quantity` (a value to two decimal places plus a kitchen
+  unit such as cup or g, or none for counted items). `RecipeBook`
   holds `RecipeCards` with `add`, `findById`, and `removeById`. Recipes, cards,
-  ingredients, steps, and notes carry an `sf.identifier` id; a card's id equals its
+  ingredients, and notes carry an `sf.identifier` id; a card's id equals its
   recipe's id. Ordered collections expose `add` and `move`, and `move` uses
   `moveToIndex` so concurrent edits to a moved item survive.
 - `src/fluid/projection.ts` — `projectRecipe`, `syncCard`, and

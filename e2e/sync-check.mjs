@@ -25,7 +25,7 @@ const waitForDetail = (page) =>
   page.getByRole('list', { name: 'Ingredients' }).waitFor({ state: 'attached' })
 const titleEditor = '.recipe-detail .rich-text-line .ql-editor'
 const ingredientEditors = '[aria-label="Ingredients"] li .ql-editor'
-const stepEditors = '[aria-label="Steps"] li .ql-editor'
+const stepEditors = '.steps .ql-editor'
 const profilePicker = (page) => page.getByRole('combobox', { name: 'You are' })
 const currentProfile = (page) => profilePicker(page).evaluate((el) => el.selectedOptions[0].textContent)
 const bookIdField = (page) => page.getByRole('textbox', { name: 'Book id', exact: true })
@@ -97,9 +97,9 @@ try {
   await recipeButton(bob, 'Soup of the day').click()
   await waitForDetail(bob)
   await bob.getByRole('button', { name: 'Add ingredient' }).click()
-  await bob.locator(ingredientEditors).nth(1).click()
+  await bob.locator(ingredientEditors).nth(0).click()
   await bob.keyboard.type('carrots')
-  await waitForEditorText(alice, ingredientEditors, 1, 'carrots')
+  await waitForEditorText(alice, ingredientEditors, 0, 'carrots')
   console.log('Bob added an ingredient in the shared recipe and Alice sees it')
 
   await alice.locator('.recipe-detail .rich-text-prose .ql-editor').first().click()
@@ -122,7 +122,6 @@ try {
 
   await recipeButton(bob, 'Soup of the day').click()
   await waitForDetail(bob)
-  await bob.getByRole('button', { name: 'Add step' }).click()
   await bob.locator(stepEditors).nth(0).click()
   await bob.keyboard.type('Simmer')
   await waitForEditorText(alice, stepEditors, 0, 'Simmer')

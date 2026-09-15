@@ -1,6 +1,8 @@
 import { createIndependentTreeView } from 'fluid-framework/beta'
 import { describe, expect, it } from 'vitest'
 import {
+  Duration,
+  Quantity,
   Recipe,
   RecipeBook,
   RecipeCard,
@@ -49,6 +51,33 @@ describe('RichText', () => {
   })
 })
 
+describe('Duration.create', () => {
+  it('keeps the value and unit as given', () => {
+    const d = Duration.create(2, 'days')
+    expect(d.value).toBe(2)
+    expect(d.unit).toBe('days')
+  })
+
+  it('rounds the value to hundredths', () => {
+    expect(Duration.create(1.234, 'hours').value).toBe(1.23)
+    expect(Duration.create(1.235, 'hours').value).toBe(1.24)
+    expect(Duration.create(0.005, 'minutes').value).toBe(0.01)
+  })
+})
+
+describe('Quantity.create', () => {
+  it('keeps the value and unit as given', () => {
+    const q = Quantity.create(2, 'cup')
+    expect(q.value).toBe(2)
+    expect(q.unit).toBe('cup')
+  })
+
+  it('rounds the value to hundredths', () => {
+    expect(Quantity.create(0.333, 'tsp').value).toBe(0.33)
+    expect(Quantity.create(1.005, 'lb').value).toBe(1.01)
+  })
+})
+
 describe('Recipe.create', () => {
   it('builds a recipe with the given title and empty collections', () => {
     const recipe = makeRecipe('Soup')
@@ -56,10 +85,10 @@ describe('Recipe.create', () => {
     expect(recipe.description.fullString()).toBe('')
     expect(recipe.sourceUrl.fullString()).toBe('')
     expect(recipe.servings).toBeUndefined()
-    expect(recipe.prepMinutes).toBeUndefined()
-    expect(recipe.cookMinutes).toBeUndefined()
+    expect(recipe.prepTime).toBeUndefined()
+    expect(recipe.cookTime).toBeUndefined()
     expect(recipe.ingredients.length).toBe(0)
-    expect(recipe.steps.length).toBe(0)
+    expect(recipe.steps.fullString()).toBe('')
     expect(recipe.tags.length).toBe(0)
     expect(recipe.notes.length).toBe(0)
   })
@@ -140,26 +169,17 @@ describe('Recipe collections', () => {
     expect(recipe.ingredients.length).toBe(1)
     expect(ingredient.id.length).toBeGreaterThan(0)
     expect(ingredient.quantity).toBeUndefined()
-    expect(ingredient.unit.fullString()).toBe('')
     expect(ingredient.name.fullString()).toBe('')
-    expect(ingredient.note.fullString()).toBe('')
   })
 
   it('ingredient fields can be edited in place', () => {
     const recipe = makeRecipe()
     const ingredient = recipe.ingredients.add()
-    ingredient.quantity = 2
+    ingredient.quantity = Quantity.create(2, 'none')
     ingredient.name.insertAt(0, 'carrots')
-    expect(recipe.ingredients[0].quantity).toBe(2)
+    expect(recipe.ingredients[0].quantity?.value).toBe(2)
+    expect(recipe.ingredients[0].quantity?.unit).toBe('none')
     expect(recipe.ingredients[0].name.fullString()).toBe('carrots')
-  })
-
-  it('steps.add appends a blank step', () => {
-    const recipe = makeRecipe()
-    const step = recipe.steps.add()
-    expect(recipe.steps.length).toBe(1)
-    expect(step.id.length).toBeGreaterThan(0)
-    expect(step.text.fullString()).toBe('')
   })
 
   it('notes.add records the author and a creation timestamp', () => {
@@ -193,48 +213,40 @@ describe('Recipe collections', () => {
 })
 
 describe('ordered collection move', () => {
-  function stepsNamed(labels: string[]) {
+  function ingredientsNamed(labels: string[]) {
     const recipe = makeRecipe()
     for (const label of labels) {
-      const step = recipe.steps.add()
-      step.text.insertAt(0, label)
+      const ingredient = recipe.ingredients.add()
+      ingredient.name.insertAt(0, label)
     }
-    return recipe.steps
+    return recipe.ingredients
   }
-  const labels = (steps: { text: { fullString(): string } }[]) =>
-    steps.map((s) => s.text.fullString())
+  const labels = (items: { name: { fullString(): string } }[]) =>
+    items.map((i) => i.name.fullString())
 
   it('moves an item toward the front, preserving node identity', () => {
-    const steps = stepsNamed(['a', 'b', 'c'])
-    const moved = steps[2]
-    steps.move(2, 0)
-    expect(labels([...steps])).toEqual(['c', 'a', 'b'])
-    expect(steps[0]).toBe(moved)
+    const items = ingredientsNamed(['a', 'b', 'c'])
+    const moved = items[2]
+    items.move(2, 0)
+    expect(labels([...items])).toEqual(['c', 'a', 'b'])
+    expect(items[0]).toBe(moved)
   })
 
   it('moves an item toward the back', () => {
-    const steps = stepsNamed(['a', 'b', 'c'])
-    steps.move(0, 2)
-    expect(labels([...steps])).toEqual(['b', 'c', 'a'])
+    const items = ingredientsNamed(['a', 'b', 'c'])
+    items.move(0, 2)
+    expect(labels([...items])).toEqual(['b', 'c', 'a'])
   })
 
   it('moves an adjacent item down by one', () => {
-    const steps = stepsNamed(['a', 'b', 'c'])
-    steps.move(0, 1)
-    expect(labels([...steps])).toEqual(['b', 'a', 'c'])
+    const items = ingredientsNamed(['a', 'b', 'c'])
+    items.move(0, 1)
+    expect(labels([...items])).toEqual(['b', 'a', 'c'])
   })
 
   it('moving an item onto itself is a no-op', () => {
-    const steps = stepsNamed(['a', 'b', 'c'])
-    steps.move(1, 1)
-    expect(labels([...steps])).toEqual(['a', 'b', 'c'])
-  })
-
-  it('works the same on ingredients', () => {
-    const recipe = makeRecipe()
-    const first = recipe.ingredients.add()
-    recipe.ingredients.add()
-    recipe.ingredients.move(0, 1)
-    expect(recipe.ingredients[1]).toBe(first)
+    const items = ingredientsNamed(['a', 'b', 'c'])
+    items.move(1, 1)
+    expect(labels([...items])).toEqual(['a', 'b', 'c'])
   })
 })

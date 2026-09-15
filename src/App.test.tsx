@@ -131,7 +131,7 @@ describe('App on the home book', () => {
       target: { value: 'Bread' },
     })
     fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
-    expect(await screen.findByRole('list', { name: 'Steps' })).toBeInTheDocument()
+    expect(await screen.findByRole('list', { name: 'Ingredients' })).toBeInTheDocument()
     expect(home.cards.length).toBe(1)
     expect(home.cards[0].title).toBe('Bread')
     expect(getSelectedRecipeId()).toBe(home.cards[0].id)
@@ -209,7 +209,7 @@ describe('App visiting another book', () => {
       target: { value: 'Bread' },
     })
     fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
-    await screen.findByRole('list', { name: 'Steps' })
+    await screen.findByRole('list', { name: 'Ingredients' })
     expect(theirs.cards.map((c) => c.title)).toEqual(['Soup', 'Bread'])
     expect(home.cards.length).toBe(0)
   })

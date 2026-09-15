@@ -176,7 +176,7 @@ describe('watchRecipeProjection', () => {
     watchRecipeProjection(recipe, [card], 300)
     recipe.description.insertAt(0, 'Warm')
     recipe.servings = 4
-    recipe.steps.add()
+    recipe.steps.insertAt(0, 'Simmer')
     vi.advanceTimersByTime(1000)
     expect(writes()).toBe(0)
   })

@@ -1,12 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import {
+  Duration,
+  durationUnits,
+  Quantity,
+  quantityUnits,
   visibilities,
   type Ingredient,
   type Note,
+  type QuantityUnit,
   type Recipe,
   type RecipeCard,
   type RichText,
-  type Step,
   type Visibility,
 } from '../fluid/schema'
 import { useNode } from '../hooks/useNode'
@@ -24,18 +28,13 @@ interface RecipeDetailProps {
 export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDetailProps) {
   useNode(recipe)
   useNode(recipe.ingredients)
-  useNode(recipe.steps)
   useNode(recipe.tags)
   useNode(recipe.notes)
   useNode(card)
 
   return (
     <article className="recipe-detail">
-      <section className="title-row">
-        <div>
-          <h3>Title</h3>
-          <RichTextEditor node={recipe.title} variant="line" placeholder="Recipe title" />
-        </div>
+      <section className="card-controls">
         <label className="number-field">
           Visibility
           <select
@@ -49,6 +48,13 @@ export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDeta
             ))}
           </select>
         </label>
+      </section>
+
+      <section className="title-row">
+        <div>
+          <h3>Title</h3>
+          <RichTextEditor node={recipe.title} variant="line" placeholder="Recipe title" />
+        </div>
         {onSave && (
           <button type="button" className="save-button" disabled={saved} onClick={onSave}>
             {saved ? 'Saved' : 'Save to my book'}
@@ -63,15 +69,17 @@ export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDeta
 
       <section className="number-fields">
         <NumberField label="Servings" value={recipe.servings} onChange={(v) => (recipe.servings = v)} />
-        <NumberField
-          label="Prep minutes"
-          value={recipe.prepMinutes}
-          onChange={(v) => (recipe.prepMinutes = v)}
+        <MeasureField
+          label="Prep time"
+          value={recipe.prepTime}
+          units={durationUnits}
+          onChange={(v, unit) => (recipe.prepTime = v === undefined ? undefined : Duration.create(v, unit))}
         />
-        <NumberField
-          label="Cook minutes"
-          value={recipe.cookMinutes}
-          onChange={(v) => (recipe.cookMinutes = v)}
+        <MeasureField
+          label="Cook time"
+          value={recipe.cookTime}
+          units={durationUnits}
+          onChange={(v, unit) => (recipe.cookTime = v === undefined ? undefined : Duration.create(v, unit))}
         />
       </section>
 
@@ -96,20 +104,9 @@ export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDeta
         </button>
       </section>
 
-      <section>
+      <section className="steps">
         <h3>Steps</h3>
-        <ol aria-label="Steps" className="plain-list">
-          {recipe.steps.map((step, index) => (
-            <StepRow
-              key={step.id}
-              step={step}
-              controls={<RowControls collection={recipe.steps} index={index} label="step" />}
-            />
-          ))}
-        </ol>
-        <button type="button" onClick={() => recipe.steps.add()}>
-          Add step
-        </button>
+        <RichTextEditor node={recipe.steps} variant="prose" placeholder="How is it made?" />
       </section>
 
       <section>
@@ -148,6 +145,68 @@ export function RecipeDetail({ recipe, card, onSave, saved = false }: RecipeDeta
 /** Tags are bare RichText nodes with no identifier field, so fall back to position. */
 function tagKey(tag: RichText, index: number): string {
   return `${index}:${tag.fullString()}`
+}
+
+interface MeasureFieldProps<Unit extends string> {
+  label: string
+  value: { value: number; unit: string } | undefined
+  units: readonly Unit[]
+  /** Called with the number as typed (unrounded) and the chosen unit, or undefined when cleared. */
+  onChange: (value: number | undefined, unit: Unit) => void
+  /** Labels the controls for assistive tech only, for use inside a row. */
+  labelHidden?: boolean
+}
+
+/** A number and a unit. The unit chosen before any number is typed is kept locally. */
+function MeasureField<Unit extends string>({
+  label,
+  value,
+  units,
+  onChange,
+  labelHidden = false,
+}: MeasureFieldProps<Unit>) {
+  const [pendingUnit, setPendingUnit] = useState<Unit>(units[0])
+  const unit = (value?.unit as Unit | undefined) ?? pendingUnit
+
+  const setValue = (raw: string) => {
+    onChange(raw === '' ? undefined : Number(raw), unit)
+  }
+  const setUnit = (next: Unit) => {
+    setPendingUnit(next)
+    if (value) onChange(value.value, next)
+  }
+
+  const inputs = (
+    <span className="measure-inputs">
+      <input
+        type="number"
+        min={0}
+        step={0.01}
+        aria-label={labelHidden ? label : undefined}
+        placeholder={labelHidden ? label.toLowerCase() : undefined}
+        value={value?.value ?? ''}
+        onChange={(event) => setValue(event.target.value)}
+      />
+      <select
+        aria-label={`${label} unit`}
+        value={unit}
+        onChange={(event) => setUnit(event.target.value as Unit)}
+      >
+        {units.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </span>
+  )
+  if (labelHidden) return inputs
+  return (
+    <label className="number-field">
+      {label}
+      {inputs}
+    </label>
+  )
 }
 
 interface NumberFieldProps {
@@ -224,31 +283,16 @@ function IngredientRow({ ingredient, controls }: { ingredient: Ingredient; contr
   useNode(ingredient)
   return (
     <li className="row ingredient-row">
-      <label className="number-field">
-        Quantity
-        <input
-          type="number"
-          min={0}
-          step="any"
-          value={ingredient.quantity ?? ''}
-          onChange={(event) => {
-            const raw = event.target.value
-            ingredient.quantity = raw === '' ? undefined : Number(raw)
-          }}
-        />
-      </label>
-      <RichTextEditor node={ingredient.unit} variant="line" placeholder="unit" />
       <RichTextEditor node={ingredient.name} variant="line" placeholder="ingredient" />
-      <RichTextEditor node={ingredient.note} variant="line" placeholder="note" />
-      {controls}
-    </li>
-  )
-}
-
-function StepRow({ step, controls }: { step: Step; controls: React.ReactNode }) {
-  return (
-    <li className="row step-row">
-      <RichTextEditor node={step.text} variant="prose" placeholder="Describe this step" />
+      <MeasureField
+        label="Quantity"
+        labelHidden
+        value={ingredient.quantity}
+        units={quantityUnits}
+        onChange={(v, unit: QuantityUnit) =>
+          (ingredient.quantity = v === undefined ? undefined : Quantity.create(v, unit))
+        }
+      />
       {controls}
     </li>
   )

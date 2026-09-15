@@ -4,10 +4,11 @@ interface CopyLinkProps {
   /** Button text, e.g. "Copy book link". The visible link is labelled by the rest of it. */
   label: string
   url: string
+  className?: string
 }
 
 /** A link shown in a read-only field with a button that copies it. */
-export function CopyLink({ label, url }: CopyLinkProps) {
+export function CopyLink({ label, url, className }: CopyLinkProps) {
   const [copied, setCopied] = useState(false)
   const fieldLabel = label.replace(/^copy\s+/i, '')
   const fieldName = fieldLabel.charAt(0).toUpperCase() + fieldLabel.slice(1)
@@ -28,7 +29,7 @@ export function CopyLink({ label, url }: CopyLinkProps) {
   }
 
   return (
-    <span className="copy-link">
+    <span className={className ? `copy-link ${className}` : 'copy-link'}>
       <input aria-label={fieldName} readOnly value={url} onFocus={(e) => e.target.select()} />
       <button type="button" onClick={() => void copy()}>
         {copied ? 'Copied' : label}

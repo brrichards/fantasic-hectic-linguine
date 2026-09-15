@@ -183,9 +183,9 @@ function App({ session, reload = () => location.reload() }: AppProps) {
               ))}
             </select>
           </label>
-          <CopyLink label="Copy book id" url={shareableId(bookId)} />
+          <CopyLink label="Copy book id" url={shareableId(bookId)} className="book-id-row" />
         </div>
-        <form onSubmit={submitVisit} className="inline-form visit-book">
+        <form onSubmit={submitVisit} className="inline-form visit-book book-id-row">
           <input
             aria-label="Book id to visit"
             placeholder="Paste a book id to visit"

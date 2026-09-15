@@ -88,7 +88,6 @@ h3 {
   flex: 1;
 }
 
-.step-row,
 .note-row {
   flex-direction: column;
   align-items: stretch;
@@ -125,6 +124,15 @@ h3 {
 }
 
 .number-field input {
+  width: 6rem;
+}
+
+.measure-inputs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.measure-inputs input {
   width: 6rem;
 }
 
@@ -170,6 +178,11 @@ button:disabled {
 .empty-state {
   align-self: center;
   justify-self: center;
+}
+
+.card-controls {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .title-row {
@@ -285,15 +298,24 @@ select {
   max-width: 100%;
 }
 
-.copy-link button {
-  white-space: nowrap;
-}
-
 .copy-link input {
-  width: 16rem;
-  max-width: 40vw;
   font-size: 0.8em;
   font-family: var(--mono);
+}
+
+.book-id-row {
+  gap: 0.5rem;
+}
+
+.book-id-row input {
+  width: 16rem;
+  max-width: 40vw;
+}
+
+.book-id-row button {
+  width: 8rem;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .sign-in-unused {
@@ -320,8 +342,4 @@ select {
 
 .visit-book {
   margin-top: 0;
-}
-
-.visit-book input {
-  width: 15rem;
 }
