@@ -1,177 +1,136 @@
 # fantasic-hectic-linguine
 
-Microsoft FHL 2026 Fall project focusing on consumer utilization of Shared Tree/Fluid Framework APIs
+This is a Microsoft FHL 2026 Fall project. It examines how consumers use the
+SharedTree and Fluid Framework APIs.
 
-A collaborative recipe book built on [SharedTree](https://fluidframework.com/docs/data-structures/tree).
-Every text field in a recipe is a SharedTree `FormattedText` node (an alpha API)
-edited through [Quill](https://quilljs.com), so collaborators see each other's
-typing and formatting live, character by character.
+The project is a recipe book that many users can edit at the same time. It is
+built on [SharedTree](https://fluidframework.com/docs/data-structures/tree).
+Each text field in a recipe is a SharedTree `FormattedText` node. This node is
+an alpha API. The user edits the field with [Quill](https://quilljs.com). When
+one user types text or applies a format, the other users see each character
+immediately.
 
 ## Stack
 
-- React 19.2 + TypeScript 6 + [Vite](https://vite.dev)
-- [`fluid-framework`](https://www.npmjs.com/package/fluid-framework) 3.x (ESM-only, requires TS 6+) with
-  `@fluidframework/tinylicious-client` and [tinylicious](https://fluidframework.com/docs/testing/tinylicious)
-  as the local Fluid service. The `fluid-framework/beta` and `fluid-framework/alpha`
-  entrypoints are used for `SchemaFactoryBeta`, `FormattedText`, and in-memory test views.
-- [Quill](https://quilljs.com) 2 and `quill-delta` for rich text editing
-- Vitest + React Testing Library for unit tests, Playwright for the live sync check
-
-Version notes:
-
-- Fluid 3.x requires TypeScript 6+, `moduleResolution: "bundler"`/Node16, and strict
-  null checks (`strict` is enabled in `tsconfig.app.json`).
-- React 19 matches Microsoft's current official SharedTree examples. Do not add the
-  `@fluidframework/react` or `@fluidframework/quill-react` helper packages: both are
-  alpha or internal and hard-depend on React 18. The Quill bridge in `src/text/` is a
-  port of the internal `quill-react` package with size and font formatting removed.
-- `FormattedText` is an alpha API and may change between Fluid releases.
+- React 19.2, TypeScript 6, and [Vite](https://vite.dev)
+- [`fluid-framework`](https://www.npmjs.com/package/fluid-framework) 3.x. This
+  package is ESM only and requires TypeScript 6 or later. It is used with
+  `@fluidframework/tinylicious-client` and
+  [tinylicious](https://fluidframework.com/docs/testing/tinylicious), the local
+  Fluid service. The `fluid-framework/beta` and `fluid-framework/alpha`
+  entrypoints supply `SchemaFactoryBeta`, `FormattedText`, and the in-memory
+  test views.
+- [Quill](https://quilljs.com) and `quill-delta` for rich text editing
+- Vitest and React Testing Library for the unit tests. Playwright for the live
+  sync test.
 
 ## Getting started
 
+1. Install the dependencies.
+2. Start tinylicious, the local Fluid service. It uses port 7070.
+3. In a second terminal, start the Vite dev server. It uses port 5173.
+
 ```sh
 npm install
-npm run start:server   # tinylicious, the local Fluid service (port 7070)
-npm run dev            # Vite dev server (port 5173), in a second terminal
+npm run start:server
+npm run dev
 ```
 
-Open http://localhost:5173 — on first use the app creates two dummy profiles,
-Alice and Bob, each with its own empty recipe book, and signs this tab in as
-Alice. A profile is a name and its book's container id; the book id is the
-profile's identity. The header lets each tab pick who it is, so two tabs in one
-browser can be two people; a new tab opens as whoever was picked most recently. "Sign in" accepts a pasted book link or id and adds it
-as a profile, which is how you open a friend's book as yourself.
+4. Open http://localhost:5173 in a browser.
 
-Nothing lives in the URL. To share your book, click "Copy book id" in the
-header; it is the book's container id in a 22-character compact form. The other
-person pastes it into "Paste a book id to visit" and clicks "Visit book". They see
-your book with a "Back to my book" button and a "Save to my book" button on every
-recipe. Saving adds the recipe to their book as the same shared recipe, not a
-copy: edits from either book land in the one container, and the saved card says
-whose book it came from and visits it on click. Which book a tab is visiting and
-which recipe it has open are remembered per tab, so a refresh keeps your place.
+On the first use, the app makes two example profiles, Alice and Bob. Each
+profile has an empty recipe book. The app signs this tab in as Alice. A profile
+is a name and the container id of its book. The book id is the identity of the
+profile. In the header, each tab selects its profile. As a result, two tabs in one
+browser can be two different users. A new tab opens as the profile that was
+selected last. "Sign in" accepts a book link or a book id. It adds the book as
+a profile. Use this to open the book of a different user as yourself.
+
+The URL contains no data. To share your book, click "Copy book id" in the
+header. The book id is the container id of the book in a compact form of 22
+characters. The other user pastes the id into "Paste a book id to visit" and
+clicks "Visit book". The other user then sees your book. The page shows a "Back
+to my book" button and a "Save to my book" button on each recipe. When the
+other user saves a recipe, the app adds the same shared recipe to the book of
+the other user. The app does not make a copy. An edit from one book or the
+other book goes to the one container. The saved card shows the book that the
+recipe came from. When the user clicks the card, the app visits that book. Each
+tab remembers the book it visits and the recipe it has open. As a result, a refresh
+keeps your position.
 
 ## Scripts
 
-| Script                 | What it does                                    |
-| ---------------------- | ----------------------------------------------- |
-| `npm run dev`          | Start the Vite dev server                       |
-| `npm run start:server` | Start tinylicious (local Fluid service)         |
-| `npm test`             | Run unit tests (Vitest)                         |
-| `npm run test:e2e`     | Live multi-client sync check (needs both servers) |
-| `npm run build`        | Typecheck and build for production              |
-| `npm run lint`         | Lint with oxlint                                |
+| Script                 | Function                                                     |
+| ---------------------- | ------------------------------------------------------------ |
+| `npm run dev`          | Start the Vite dev server                                    |
+| `npm run start:server` | Start tinylicious, the local Fluid service                   |
+| `npm test`             | Do the unit tests with Vitest                                |
+| `npm run test:e2e`     | Do the live multi-client sync test. Both servers must be on. |
+| `npm run build`        | Check the types and build for production                     |
+| `npm run lint`         | Lint with oxlint                                             |
 
-The e2e check drives Playwright browser clients through creating a recipe,
-retitling it in a Quill editor and watching the card follow, a second tab
-switching to Bob, visiting Alice's book by her copied id, editing the shared
-recipe, saving it into his own book, editing it from there, a tag projected across
-both books, a refreshed tab landing back on its open recipe, and the bad-book-id
-error path (append `-- --headed` to watch it). All tabs share one browser context,
-like a real user with two profiles.
+The e2e test controls Playwright browser clients. It does these steps:
 
-## How the data is split
+1. Make a recipe.
+2. Change the title in a Quill editor and make sure that the card shows the new
+   title.
+3. In a second tab, change the profile to Bob.
+4. Visit the book of Alice with her copied id.
+5. Edit the shared recipe.
+6. Save the recipe to the book of Bob.
+7. Edit the recipe from the book of Bob.
+8. Make sure that a tag shows in the two books.
+9. Refresh a tab and make sure that it goes back to its open recipe.
+10. Make sure that the app shows an error for an incorrect book id.
 
-There are two kinds of Fluid container, because Fluid syncs and secures per
-container and containers cannot nest.
+To see the test in a browser window, add `-- --headed` to the command. All
+tabs use one browser context. This is the same as one user with two profiles.
 
-- A **book container**, one per user, whose root is `RecipeBook { cards }`. Each
-  `RecipeCard` holds the searchable fields of one recipe (title, tags, updated
-  time), the id of that recipe's own container, and `originBookId`, the book the
-  recipe was created in, which stands in for its author until profiles exist. Cards are a projection: nothing edits their title or tags by hand. Tags on a card are a map
-  keyed by tag rather than an array, so two clients projecting the same recipe at
-  once converge to one entry per tag; an array would keep both inserts.
-- A **recipe container**, one per recipe, whose root is `Recipe`. This is the
-  shared document collaborators edit together. Opening a card opens its container.
+## How the data is divided
 
-Your home book stays open for the life of the page, and a second book is opened
-alongside it when the URL names someone else's. Saving a recipe from their book
-adds a card with the same id and container id to your book. At most one recipe
-container is open at a time, the selected one; switching recipes disposes the
-previous container once its edits are acknowledged. While a recipe is open, the
-client syncs its cards in every open book once on open, then watches its title and
-tags and writes them, debounced and only when the projection differs, so a second
-client browsing either book sees titles update live. Cards in books nobody has
-open go stale until someone opens that recipe from that book.
+There are two types of Fluid container. Fluid syncs each container and
+protects each container separately. A container cannot contain a different
+container.
 
-## Layout
+- A **book container**. There is one book container for each user. Its root is
+  `RecipeBook { cards }`. Each `RecipeCard` holds the searchable fields of one
+  recipe: the title, the tags, and the time of the last update. The card also
+  holds the id of the container of that recipe, and `originBookId`. The
+  `originBookId` is the book in which the recipe was made. It identifies the
+  author until profiles exist. The cards are a projection. No code edits the
+  title or the tags of a card directly. The tags on a card are a map with the
+  tag as the key. They are not an array. As a result, when two clients project the
+  same recipe at the same time, the result has one entry for each tag. An array
+  would keep the two inserts.
+- A **recipe container**. There is one recipe container for each recipe. Its
+  root is `Recipe`. This is the shared document that the users edit together.
+  When a user opens a card, the app opens its container.
 
-- `src/fluid/schema.ts` — both schemas. `RichText` is built with
-  `FormattedText.createSchema` over a `CharacterFormat` of bold, italic, and
-  underline plus a `LineAtom` that carries Quill's line formatting (headers, lists,
-  blockquote, code block) on a newline. `Recipe` has a title, description, source
-  URL, optional servings, optional prep and cook times (a `Duration`: a value to
-  two decimal places plus a unit of minutes, hours, or days), `steps` as one rich text,
-  and ordered `Ingredients`, `Tags`, and `Notes`; `Recipe.create(title, id?)` builds a
-  blank one. An `Ingredient`
-  is a name plus an optional `Quantity` (a value to two decimal places plus a kitchen
-  unit such as cup or g, or none for counted items). `RecipeBook`
-  holds `RecipeCards` with `add`, `findById`, and `removeById`. Recipes, cards,
-  ingredients, and notes carry an `sf.identifier` id; a card's id equals its
-  recipe's id. Ordered collections expose `add` and `move`, and `move` uses
-  `moveToIndex` so concurrent edits to a moved item survive.
-- `src/fluid/projection.ts` — `projectRecipe`, `syncCard`, and
-  `watchRecipeProjection`, which copies a recipe's title and tags onto its card in
-  one transaction after a debounce.
-- `src/fluid/session.ts` — `RecipeSession`, which owns the home book, an optional
-  browsed book, and the one open recipe container, with `saveToHome`, over a
-  `ContainerSource` interface so tests can run it on in-memory views.
-- `src/profiles.ts` — the profiles known on this device (name and book id), which
-  one each tab is signed in as, and the first-run creation of Alice and Bob.
-- `src/ids.ts` — compact base64url form of a container UUID, and 8-character
-  recipe ids.
-- `src/tabState.ts` — the book this tab is visiting and the recipe it has open,
-  in session storage.
-- `src/fluid/client.ts` — the tinylicious `ContainerSource` and `loadBook`, with the
-  `canInitialize` / `canView` / `canUpgrade` checks the Fluid docs recommend.
-- `src/text/quillAttributes.ts` — maps Quill attributes to and from the tree's
-  character format and line tags.
-- `src/text/quillBridge.ts` — the two-way translation. `applyQuillDeltaToTree`
-  turns a Quill delta from a user edit into one tree transaction.
-  `contentOpsToQuillDelta` turns the tree's content ops back into Quill ops, and
-  `buildDeltaFromTree` renders the whole node. Quill counts UTF-16 code units and
-  the tree counts code points, so every position is tracked in both.
-- `src/text/RichTextEditor.tsx` — one Quill instance per mounted field. The
-  `prose` variant has a toolbar; the `line` variant swallows Enter and strips
-  pasted newlines. A re-entrancy flag stops local edits echoing back through the
-  tree subscription. Quill's history module is off; there is no undo/redo yet.
-- `src/text/RichTextView.tsx` — the read-only rendering of a `RichText` node as
-  plain elements (headings, lists, checklists, blockquote, code block, bold,
-  italic, underline), built from the same `buildDeltaFromTree` walk the editor
-  uses. It subscribes to the node, so remote edits show while viewing.
-- `src/hooks/useNode.ts` — `useSyncExternalStore` over `Tree.on(node, ...)` for
-  non-text state, scoped per node so keystrokes in an editor never re-render the
-  surrounding shell.
-- `src/components/` — `RecipeList` (cards, add, remove, select, save), `RecipeDetail`
-  (a View / Edit toggle, an author-only "Allow others to edit" checkbox bound to
-  `Recipe.othersMayEdit`, and either every field of one recipe in its editor or
-  `RecipeView`, the read-only page that omits empty sections), and `CopyLink`. An
-  existing recipe opens in view mode; a recipe you just created opens in edit mode.
-  When the author turns editing off, everyone else is held in view mode with the
-  Edit tab disabled. The author is whoever owns the recipe's origin book. `App` holds the header with the profile picker,
-  the book id for sharing, and the visit form. Changing book (profile, visit, or
-  home) reloads the page, since book containers are loaded once.
-- `src/test/fakeContainerSource.ts` — an in-memory `ContainerSource` for tests.
-
-See `BACKLOG.md` for designed but unscheduled slices.
+Your home book stays open until the page closes. When the URL names the book
+of a different user, the app opens a second book. When you save a recipe from
+that book, the app adds a card with the same id and the same container id to
+your book. Not more than one recipe container is open at one time. This is the
+selected recipe. When you select a different recipe, the app closes the
+previous container after the service acknowledges its edits. When a recipe is
+open, the client syncs its cards in each open book one time. Then the client
+monitors the title and the tags of the recipe. When the projection is
+different, the client writes the new values after a short delay. As a result, a second
+client that reads one of the books sees the new title immediately. Cards in
+books that no user has open stay out of date until a user opens that recipe
+from that book.
 
 ## Known limitations
 
-- Tinylicious enforces no access control. `othersMayEdit` on a recipe is honored
-  by this client's UI only; anyone with a book id can read every card, and a
-  modified client could still write to any container.
-- Profiles are a local list of names and book ids, and Alice and Bob are created
-  on first use. Real sign-in would supply the book id from a backend instead.
-  Container ids cannot be chosen by the client with this stack, so a profile's
-  id is the id the service assigned to its book.
-- A saved recipe is shared, not forked. Getting your own copy to change freely is
-  the export-and-import slice in the backlog.
-- Removing a card does not delete its recipe container; tinylicious has no delete.
-  Orphaned containers are harmless.
-- Quill's mandatory terminal newline is not stored in the tree unless the last
-  line carries line formatting. Pressing Enter at the very end of a field can
-  therefore show one more blank line locally than remotely. This matches the
-  behavior of Fluid's own Quill bridge.
-- Embeds (images, links) pasted into an editor are ignored.
-- Every mounted field is a live Quill instance, so a recipe with many
-  ingredients carries many editors. Only the selected recipe is mounted.
+- The profiles are a local list of names and book ids. The app makes Alice and
+  Bob on the first use. A real sign-in would get the book id from a backend.
+  With this stack, the client cannot select a container id. As a result, the id of a
+  profile is the id that the service gave to its book.
+- A saved recipe is shared. It is not a fork. You cannot make your own copy
+  that you can change freely.
+- Quill requires a newline at the end of the text. The tree does not store this
+  newline unless the last line has a line format. As a result, when you push Enter at
+  the end of a field, the local view can show one more empty line than the
+  remote view. This is the same as the behavior of the Quill bridge of Fluid.
+- The editor does not use embeds (images, links) in pasted text.
+- Each mounted field is a live Quill instance. As a result, a recipe with many
+  ingredients has many editors. Only the selected recipe is mounted.
