@@ -1,0 +1,31 @@
+.rich-text-view > :first-child {
+  margin-top: 0;
+}
+
+.rich-text-view > :last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-view p {
+  margin: 0 0 0.5rem;
+}
+
+.rich-text-view h1,
+.rich-text-view h2,
+.rich-text-view h3,
+.rich-text-view h4,
+.rich-text-view h5 {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.rich-text-view ul,
+.rich-text-view ol {
+  margin: 0 0 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.rich-text-view blockquote {
+  margin: 0 0 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--accent-border);
+}

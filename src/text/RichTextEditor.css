@@ -1,0 +1,24 @@
+.rich-text {
+  width: 100%;
+}
+
+.rich-text .ql-container {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.rich-text-prose .ql-editor {
+  min-height: 6rem;
+}
+
+.rich-text-line .ql-container.ql-snow {
+  border: 1px solid var(--border, #ccc);
+  border-radius: 4px;
+}
+
+.rich-text-line .ql-editor {
+  padding: 0.35rem 0.5rem;
+  min-height: 0;
+  white-space: nowrap;
+  overflow-x: auto;
+}

@@ -1,0 +1,398 @@
+.app {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  text-align: left;
+  flex: 1;
+}
+
+@media (max-width: 720px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+}
+
+.recipe-list {
+  border-right: 1px solid var(--border);
+  padding-right: 1rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.recipe-detail section {
+  margin-bottom: 1.5rem;
+}
+
+h2,
+h3 {
+  margin: 0 0 0.5rem;
+  color: var(--text-h);
+}
+
+.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+
+.recipe-list .plain-list {
+  margin-top: 0.75rem;
+}
+
+.recipe-list-empty {
+  padding: 0.75rem 0.6rem 0;
+}
+
+.recipe-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.recipe-list-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.recipe-list-title:hover {
+  background: var(--accent-bg);
+}
+
+.recipe-list-title[aria-current='true'] {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.row > .rich-text {
+  flex: 1;
+}
+
+.note-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.note-header time {
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.row-controls {
+  display: flex;
+  gap: 0.25rem;
+  align-self: flex-end;
+}
+
+.number-fields {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.number-field {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85em;
+  gap: 0.25rem;
+}
+
+.number-field input {
+  width: 6rem;
+}
+
+.measure-inputs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.measure-inputs input {
+  width: 6rem;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.inline-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+input,
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.icon-button {
+  padding: 0.2rem 0.5rem;
+  line-height: 1;
+}
+
+.muted {
+  opacity: 0.7;
+}
+
+.empty-state {
+  align-self: center;
+  justify-self: center;
+}
+
+.card-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85em;
+}
+
+.mode-toggle {
+  display: inline-flex;
+}
+
+.mode-toggle button {
+  border-radius: 0;
+}
+
+.mode-toggle button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.mode-toggle button:last-child {
+  border-radius: 0 4px 4px 0;
+  margin-left: -1px;
+}
+
+.mode-toggle button[aria-pressed='true'] {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
+  position: relative;
+}
+
+.recipe-view-title {
+  margin: 0;
+}
+
+.recipe-view .title-row {
+  margin-bottom: 0.5rem;
+}
+
+.recipe-summary {
+  margin-bottom: 1.5rem;
+}
+
+.ingredient-list {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.note-view {
+  margin-bottom: 1rem;
+}
+
+.title-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.title-row > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.card-tag {
+  font-size: 0.75em;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+}
+
+select {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+}
+
+.error {
+  color: #b42318;
+}
+
+.book-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.book-banner a,
+.card-origin {
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.book-banner a:hover,
+.card-origin:hover {
+  text-decoration: underline;
+}
+
+.card-origin {
+  font-size: 0.75em;
+}
+
+.save-button {
+  white-space: nowrap;
+  font-size: 0.85em;
+  padding: 0.25rem 0.5rem;
+}
+
+.app-header {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.book-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.profile-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  color: var(--text-h);
+}
+
+.copy-link {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  align-items: center;
+  max-width: 100%;
+}
+
+.copy-link input {
+  font-size: 0.8em;
+  font-family: var(--mono);
+}
+
+.book-id-row {
+  gap: 0.5rem;
+}
+
+.book-id-row input {
+  width: 16rem;
+  max-width: 40vw;
+}
+
+.book-id-row button {
+  width: 8rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sign-in-unused {
+  margin-top: 0;
+}
+
+.sign-in-unused input {
+  width: 9rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.visit-book {
+  margin-top: 0;
+}
