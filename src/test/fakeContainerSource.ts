@@ -37,7 +37,7 @@ export function fakeContainerSource() {
       const containerId = `container-${n}`
       views.set(containerId, view)
       log.push(`create ${containerId}`)
-      return { containerId, ...opened(containerId) }
+      return { id: containerId, ...opened(containerId) }
     },
     async openRecipe(containerId: string) {
       if (!views.has(containerId)) throw new Error(`no container ${containerId}`)

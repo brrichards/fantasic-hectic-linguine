@@ -9,7 +9,6 @@ interface RecipeViewProps {
   titleControls?: ReactNode
 }
 
-
 /** "1 hour", "20 minutes": the stored unit, singular when the value is one. */
 function durationText({ value, unit }: { value: number; unit: string }): string {
   return `${value} ${value === 1 ? unit.replace(/s$/, '') : unit}`
@@ -140,7 +139,9 @@ function IngredientLine({ ingredient }: { ingredient: Ingredient }) {
   useNode(ingredient)
   return (
     <li>
-      {ingredient.quantity && <span className="ingredient-quantity">{quantityText(ingredient.quantity)} </span>}
+      {ingredient.quantity && (
+        <span className="ingredient-quantity">{quantityText(ingredient.quantity)} </span>
+      )}
       <RichTextView node={ingredient.name} inline />
     </li>
   )

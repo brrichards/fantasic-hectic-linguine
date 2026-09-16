@@ -4,12 +4,12 @@ import { SchemaFactoryBeta, enumFromStrings } from 'fluid-framework/beta'
 
 const sf = new SchemaFactoryBeta('fhl.recipes')
 
-// --- Rich text -------------------------------------------------------------
+// #region Rich text
 
 export class CharacterFormat extends sf.object('CharacterFormat', {
-  bold: SchemaFactoryBeta.boolean,
-  italic: SchemaFactoryBeta.boolean,
-  underline: SchemaFactoryBeta.boolean,
+  bold: sf.boolean,
+  italic: sf.boolean,
+  underline: sf.boolean,
 }) {}
 
 export const defaultFormat = { bold: false, italic: false, underline: false } as const
@@ -23,38 +23,23 @@ export const LineTag = enumFromStrings(sf.scopedFactory('lineTag'), [
   'h5',
   'li',
   'ol',
-  'checked',
-  'unchecked',
   'blockquote',
-  'codeBlock',
 ])
 export type LineTag = ReturnType<typeof LineTag>
 
 /** A newline character that carries line formatting. Plain newlines are ordinary text atoms. */
 export class LineAtom extends sf.object('LineAtom', {
   tag: LineTag.schema,
-  indent: SchemaFactoryBeta.number,
+  indent: sf.number,
 }) {
   readonly content = '\n'
 }
 
-export class RichText extends FormattedText.createSchema(
-  sf,
-  CharacterFormat,
-  [LineAtom],
-  defaultFormat,
-) {}
+export class RichText extends FormattedText.createSchema(sf, CharacterFormat, [LineAtom], defaultFormat) {}
 
-// --- Recipe domain ---------------------------------------------------------
+// #endregion
 
-/**
- * Computes the `destinationGap` for `moveToIndex` so that the item at
- * `from` ends up at index `to` after the move. Gaps are numbered between
- * items *before* the move, so moving forward needs the gap after `to`.
- */
-function gapFor(from: number, to: number): number {
-  return to > from ? to + 1 : to
-}
+// #region Recipe domain
 
 export const quantityUnits = [
   'none',
@@ -74,8 +59,8 @@ export type QuantityUnit = (typeof quantityUnits)[number]
 
 /** How much of an ingredient: a value to two decimal places and a kitchen unit. */
 export class Quantity extends sf.object('Quantity', {
-  value: SchemaFactoryBeta.number,
-  unit: SchemaFactoryBeta.string,
+  value: sf.number,
+  unit: sf.string,
 }) {
   /** Rounds `value` to hundredths so nothing finer than that is ever stored. */
   static create(value: number, unit: QuantityUnit): Quantity {
@@ -95,8 +80,9 @@ export class Ingredients extends sf.array('Ingredients', Ingredient) {
     this.insertAtEnd(ingredient)
     return ingredient
   }
-  move(from: number, to: number): void {
-    if (from !== to) this.moveToIndex(gapFor(from, to), from)
+  /** Swaps the item at `index` with the one after it. */
+  swapWithNext(index: number): void {
+    this.moveToIndex(index, index + 1)
   }
 }
 
@@ -104,7 +90,7 @@ export class Note extends sf.object('Note', {
   id: sf.identifier,
   author: RichText,
   text: RichText,
-  createdAt: SchemaFactoryBeta.number,
+  createdAt: sf.number,
 }) {}
 
 export class Notes extends sf.array('Notes', Note) {
@@ -135,8 +121,8 @@ export type DurationUnit = (typeof durationUnits)[number]
 
 /** A length of time as it was entered: a value to two decimal places and its unit. */
 export class Duration extends sf.object('Duration', {
-  value: SchemaFactoryBeta.number,
-  unit: SchemaFactoryBeta.string,
+  value: sf.number,
+  unit: sf.string,
 }) {
   /** Rounds `value` to hundredths so nothing finer than that is ever stored. */
   static create(value: number, unit: DurationUnit): Duration {
@@ -146,24 +132,25 @@ export class Duration extends sf.object('Duration', {
 
 /** The root of a recipe container. One container per recipe. */
 export class Recipe extends sf.object('Recipe', {
-  id: sf.identifier,
   title: RichText,
   description: RichText,
   sourceUrl: RichText,
-  servings: sf.optional(SchemaFactoryBeta.number),
+  servings: sf.optional(sf.number),
   prepTime: sf.optional(Duration),
   cookTime: sf.optional(Duration),
   ingredients: Ingredients,
   steps: RichText,
   tags: Tags,
   notes: Notes,
+  /** The id of the author's book container, which is how the app identifies a person. */
+  authorId: sf.string,
   /** Whether people other than the author may switch the recipe into edit mode. */
-  othersMayEdit: SchemaFactoryBeta.boolean,
+  othersMayEdit: sf.boolean,
 }) {
-  /** A blank recipe with the given title. Pass `id` to share it with the recipe's card. */
-  static create(title: string, id?: string): Recipe {
+  /** A blank recipe with the given title and author. */
+  static create(title: string, authorId: string): Recipe {
     return new Recipe({
-      ...(id === undefined ? {} : { id }),
+      authorId,
       title: RichText.fromString(title),
       description: RichText.fromString(''),
       sourceUrl: RichText.fromString(''),
@@ -178,27 +165,26 @@ export class Recipe extends sf.object('Recipe', {
 
 export const recipeConfig = new TreeViewConfiguration({ schema: Recipe })
 
-// --- Recipe book: one container per user, holding a card per recipe -------
+// #endregion
+
+// #region Recipe book: one container per user, holding a card per recipe
 
 /**
  * A set of tag strings keyed by tag. A map, not an array, so two clients that
  * project the same recipe at once converge to one entry per tag.
  */
-export class CardTags extends sf.map('CardTags', SchemaFactoryBeta.boolean) {}
+export class CardTags extends sf.map('CardTags', sf.boolean) {}
 
 /**
- * A projection of one recipe plus the id of the container that holds it.
- * `title` and `tags` are copied from the recipe by the projector; nothing
- * edits them by hand. `originBookId` is the book the recipe was created in,
- * which stands in for its author until profiles exist.
+ * A projection of one recipe. `id` is the id of the container that holds the
+ * recipe. The other fields are copied from the recipe by the projector;
+ * nothing edits them by hand.
  */
 export class RecipeCard extends sf.object('RecipeCard', {
-  id: sf.identifier,
-  containerId: SchemaFactoryBeta.string,
-  title: SchemaFactoryBeta.string,
+  id: sf.string,
+  title: sf.string,
   tags: CardTags,
-  originBookId: sf.optional(SchemaFactoryBeta.string),
-  updatedAt: SchemaFactoryBeta.number,
+  authorId: sf.string,
 }) {}
 
 export class RecipeCards extends sf.array('RecipeCards', RecipeCard) {
@@ -221,3 +207,5 @@ export class RecipeBook extends sf.object('RecipeBook', {
 }) {}
 
 export const bookConfig = new TreeViewConfiguration({ schema: RecipeBook })
+
+// #endregion

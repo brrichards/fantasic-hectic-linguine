@@ -1,6 +1,5 @@
 import type { TreeView } from 'fluid-framework'
-import { syncCard, watchRecipeProjection } from './projection'
-import { shortId } from '../ids'
+import { cardFor, syncCard, watchRecipeProjection } from './projection'
 import { Recipe, RecipeBook, RecipeCard } from './schema'
 
 /** A recipe container that has been opened by a {@link ContainerSource}. */
@@ -19,8 +18,8 @@ export interface OpenedRecipe {
 
 /** Where recipe containers come from. The real one talks to Fluid; tests use in-memory views. */
 export interface ContainerSource {
-  createRecipe(recipe: Recipe): Promise<OpenedRecipe & { containerId: string }>
-  openRecipe(containerId: string): Promise<OpenedRecipe>
+  createRecipe(recipe: Recipe): Promise<OpenedRecipe & { id: string }>
+  openRecipe(id: string): Promise<OpenedRecipe>
 }
 
 /** An open book container and its id. */
@@ -34,12 +33,8 @@ export interface BookHandle {
 export interface SessionBooks {
   /** This browser's own book, always open. */
   home: BookHandle
-  /** Someone else's book, when the URL names one. */
+  /** Someone else's book, when this tab is visiting one. */
   browsed?: BookHandle
-}
-
-export interface SessionOptions {
-  projectionDelayMs?: number
 }
 
 interface Selection {
@@ -62,13 +57,11 @@ export class RecipeSession {
   private readonly home: BookHandle
   private readonly browsed: BookHandle | undefined
   private readonly source: ContainerSource
-  private readonly projectionDelayMs: number
 
-  constructor(books: SessionBooks, source: ContainerSource, options: SessionOptions = {}) {
+  constructor(books: SessionBooks, source: ContainerSource) {
     this.home = books.home
     this.browsed = books.browsed
     this.source = source
-    this.projectionDelayMs = options.projectionDelayMs ?? 300
   }
 
   /** The book on screen: the browsed one when there is one, else home. */
@@ -112,11 +105,9 @@ export class RecipeSession {
     const saved = this.homeBook.cards.add(
       new RecipeCard({
         id: card.id,
-        containerId: card.containerId,
         title: card.title,
         tags: Object.fromEntries([...card.tags.keys()].map((tag) => [tag, true])),
-        originBookId: card.originBookId,
-        updatedAt: Date.now(),
+        authorId: card.authorId,
       }),
     )
     // If this recipe is open and caught up, the live recipe beats the copied card.
@@ -129,18 +120,8 @@ export class RecipeSession {
 
   /** Creates a recipe container, adds its card to the book on screen, and selects it. */
   async createRecipe(title: string): Promise<RecipeCard> {
-    const opened = await this.source.createRecipe(Recipe.create(title, shortId()))
-    const recipe = opened.view.root
-    const card = this.book.cards.add(
-      new RecipeCard({
-        id: recipe.id,
-        containerId: opened.containerId,
-        title: recipe.title.fullString(),
-        tags: {},
-        originBookId: this.bookId,
-        updatedAt: Date.now(),
-      }),
-    )
+    const opened = await this.source.createRecipe(Recipe.create(title, this.bookId))
+    const card = this.book.cards.add(cardFor(opened.id, opened.view.root))
     this.replaceSelection({ card, opened })
     return card
   }
@@ -148,7 +129,7 @@ export class RecipeSession {
   /** Opens the card's container, or reuses it when already selected. */
   async select(card: RecipeCard): Promise<Recipe> {
     if (this.selection?.card.id === card.id) return this.selection.opened.view.root
-    const opened = await this.source.openRecipe(card.containerId)
+    const opened = await this.source.openRecipe(card.id)
     this.replaceSelection({ card, opened })
     return opened.view.root
   }
@@ -156,10 +137,6 @@ export class RecipeSession {
   deselect(): void {
     this.release(this.selection)
     this.selection = undefined
-  }
-
-  close(): void {
-    this.deselect()
   }
 
   /** Every card for this recipe in the books that are open here. */
@@ -186,7 +163,7 @@ export class RecipeSession {
       // Cards can be stale if other clients edited while nobody here had the
       // recipe open, so bring them up to date before watching.
       for (const card of cards()) syncCard(card, recipe)
-      selection.stopProjection = watchRecipeProjection(recipe, cards, this.projectionDelayMs)
+      selection.stopProjection = watchRecipeProjection(recipe, cards)
       selection.syncing = true
     })
   }

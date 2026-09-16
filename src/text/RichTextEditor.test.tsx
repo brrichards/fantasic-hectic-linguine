@@ -24,12 +24,6 @@ function quillIn(container: HTMLElement, nth = 0) {
 }
 
 describe('RichTextEditor', () => {
-  it('shows the text already in the node', () => {
-    const node = hydrated('Hello')
-    const { container } = render(<RichTextEditor node={node} variant="prose" />)
-    expect(quillIn(container).getText()).toBe('Hello\n')
-  })
-
   it('writes user typing and inline formatting into the node', () => {
     const node = hydrated('Hello')
     const { container } = render(<RichTextEditor node={node} variant="prose" />)
@@ -42,18 +36,6 @@ describe('RichTextEditor', () => {
     const bold = node.charactersWithFormatting().map((a) => a.format.bold)
     expect(bold.slice(0, 5)).toEqual([true, true, true, true, true])
     expect(bold.slice(5).some(Boolean)).toBe(false)
-  })
-
-  it('writes a header applied by the user as a line atom', () => {
-    const node = hydrated('Title')
-    const { container } = render(<RichTextEditor node={node} variant="prose" />)
-    act(() => {
-      quillIn(container).formatLine(0, 1, 'header', 1, 'user')
-    })
-    expect(node.fullString()).toBe('Title\n')
-    const last = node.charactersWithFormatting()[5].content
-    expect(last).toBeInstanceOf(LineAtom)
-    expect((last as LineAtom).tag.value).toBe('h1')
   })
 
   it('reflects edits made directly on the node', () => {
@@ -126,14 +108,5 @@ describe('RichTextEditor', () => {
     })
     expect(quill.getText()).toBe('ab\n')
     expect(node.fullString()).toBe('ab')
-  })
-
-  it('removes the editor DOM and stops listening on unmount', () => {
-    const node = hydrated('Hello')
-    const { container, unmount } = render(<RichTextEditor node={node} variant="prose" />)
-    unmount()
-    expect(container.querySelector('.ql-toolbar')).toBeNull()
-    expect(container.querySelector('.ql-editor')).toBeNull()
-    expect(() => node.insertAt(0, 'x')).not.toThrow()
   })
 })

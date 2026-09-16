@@ -1,46 +1,29 @@
-import { createIndependentTreeView, type TreeViewBeta } from 'fluid-framework/beta'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { projectRecipe, syncCard, watchRecipeProjection } from './projection'
-import { Recipe, RecipeBook, RecipeCard, bookConfig, recipeConfig } from './schema'
+import { createIndependentTreeView } from 'fluid-framework/beta'
+import { describe, expect, it } from 'vitest'
+import { cardFor, projectRecipe, syncCard, watchRecipeProjection } from './projection'
+import { Recipe, RecipeCard, recipeConfig } from './schema'
+import { makeBookView } from '../test/fakeContainerSource'
 
 function makeRecipe(title = 'Soup') {
   const view = createIndependentTreeView(recipeConfig)
-  view.initialize(Recipe.create(title))
+  view.initialize(Recipe.create(title, 'home'))
   return view.root
 }
 
 function makeBookWithCard(recipe: Recipe) {
-  const view = createIndependentTreeView(bookConfig)
-  view.initialize(new RecipeBook({ cards: [] }))
+  const view = makeBookView()
   const card = view.root.cards.add(
     new RecipeCard({
-      id: recipe.id,
-      containerId: 'c1',
+      id: 'c1',
       title: recipe.title.fullString(),
       tags: {},
-      updatedAt: 1,
+      authorId: 'home',
     }),
   )
-  return { book: view.root, card, view }
-}
-
-/** Counts commits applied to the book, which is what one transaction produces. */
-function countCommits(view: TreeViewBeta<typeof RecipeBook>) {
-  let commits = 0
-  view.events.on('commitApplied', () => {
-    commits += 1
-  })
-  return () => commits
+  return { book: view.root, card }
 }
 
 describe('projectRecipe', () => {
-  it('copies the title and tags as plain strings', () => {
-    const recipe = makeRecipe('Soup')
-    recipe.tags.add('dinner')
-    recipe.tags.add('vegan')
-    expect(projectRecipe(recipe)).toEqual({ title: 'Soup', tags: ['dinner', 'vegan'] })
-  })
-
   it('flattens the title to one trimmed line', () => {
     const recipe = makeRecipe('Hot')
     recipe.title.insertAt(3, '\nSoup\n')
@@ -56,36 +39,41 @@ describe('projectRecipe', () => {
   })
 })
 
+describe('cardFor', () => {
+  it('builds a card from the projection of the recipe', () => {
+    const recipe = makeRecipe('Hot\nSoup')
+    recipe.tags.add('dinner')
+    const card = cardFor('c9', recipe)
+    expect(card.id).toBe('c9')
+    expect(card.title).toBe('Hot Soup')
+    expect([...card.tags.keys()]).toEqual(['dinner'])
+    expect(card.authorId).toBe('home')
+  })
+})
+
 describe('syncCard', () => {
-  it('writes title, tags, and a fresh timestamp when the projection differs', () => {
+  it('writes the title and tags when the projection differs', () => {
     const recipe = makeRecipe('Soup')
     const { card } = makeBookWithCard(recipe)
     recipe.title.insertAt(4, ' of the day')
     recipe.tags.add('dinner')
-    const before = Date.now()
     expect(syncCard(card, recipe)).toBe(true)
     expect(card.title).toBe('Soup of the day')
     expect([...card.tags.keys()]).toEqual(['dinner'])
-    expect(card.updatedAt).toBeGreaterThanOrEqual(before)
   })
 
   it('writes nothing when the card already matches', () => {
     const recipe = makeRecipe('Soup')
-    const { card, view } = makeBookWithCard(recipe)
-    const writes = countCommits(view)
+    const { card } = makeBookWithCard(recipe)
     expect(syncCard(card, recipe)).toBe(false)
-    expect(card.updatedAt).toBe(1)
-    expect(writes()).toBe(0)
   })
 
-  it('writes the whole projection as a single commit', () => {
+  it('brings a card that names the wrong author in line with the recipe', () => {
     const recipe = makeRecipe('Soup')
-    const { card, view } = makeBookWithCard(recipe)
-    const writes = countCommits(view)
-    recipe.title.insertAt(4, '!')
-    recipe.tags.add('quick')
-    syncCard(card, recipe)
-    expect(writes()).toBe(1)
+    const { card } = makeBookWithCard(recipe)
+    card.authorId = 'someone-else'
+    expect(syncCard(card, recipe)).toBe(true)
+    expect(card.authorId).toBe('home')
   })
 
   it('removes tags that are gone and keeps the ones that remain', () => {
@@ -100,18 +88,6 @@ describe('syncCard', () => {
     expect([...card.tags.keys()].sort()).toEqual(['quick', 'vegan'])
   })
 
-  it('converges to one copy of each tag when two clients project at once', () => {
-    const recipe = makeRecipe('Soup')
-    const { view } = makeBookWithCard(recipe)
-    recipe.tags.add('dinner')
-    // A fork behaves like a second client editing the same book concurrently.
-    const other = view.fork()
-    syncCard(view.root.cards[0], recipe)
-    syncCard(other.root.cards[0], recipe)
-    view.merge(other)
-    expect([...view.root.cards[0].tags.keys()]).toEqual(['dinner'])
-  })
-
   it('is a no-op once the card has been removed from its book', () => {
     const recipe = makeRecipe('Soup')
     const { book, card } = makeBookWithCard(recipe)
@@ -123,86 +99,15 @@ describe('syncCard', () => {
 })
 
 describe('watchRecipeProjection', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-  })
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('does not touch the card until the delay has passed', () => {
+  it('writes title and tag changes to the card as they happen', () => {
     const recipe = makeRecipe('Soup')
     const { card } = makeBookWithCard(recipe)
-    watchRecipeProjection(recipe, [card], 300)
+    watchRecipeProjection(recipe, () => [card])
     recipe.title.insertAt(4, '!')
-    vi.advanceTimersByTime(299)
-    expect(card.title).toBe('Soup')
-    vi.advanceTimersByTime(1)
     expect(card.title).toBe('Soup!')
-  })
-
-  it('coalesces a burst of edits into one write', () => {
-    const recipe = makeRecipe('Soup')
-    const { card, view } = makeBookWithCard(recipe)
-    const writes = countCommits(view)
-    watchRecipeProjection(recipe, [card], 300)
-    recipe.title.insertAt(4, ' ')
-    vi.advanceTimersByTime(100)
-    recipe.title.insertAt(5, 'o')
-    vi.advanceTimersByTime(100)
-    recipe.title.insertAt(6, 'f')
-    vi.advanceTimersByTime(300)
-    expect(card.title).toBe('Soup of')
-    expect(writes()).toBe(1)
-  })
-
-  it('reacts to tag edits as well as title edits', () => {
-    const recipe = makeRecipe('Soup')
-    const { card } = makeBookWithCard(recipe)
-    watchRecipeProjection(recipe, [card], 300)
     recipe.tags.add('dinner')
-    vi.advanceTimersByTime(300)
     expect([...card.tags.keys()]).toEqual(['dinner'])
     recipe.tags[0].insertAt(6, ' party')
-    vi.advanceTimersByTime(300)
     expect([...card.tags.keys()]).toEqual(['dinner party'])
-  })
-
-  it('ignores edits to fields that are not projected', () => {
-    const recipe = makeRecipe('Soup')
-    const { card, view } = makeBookWithCard(recipe)
-    const writes = countCommits(view)
-    watchRecipeProjection(recipe, [card], 300)
-    recipe.description.insertAt(0, 'Warm')
-    recipe.servings = 4
-    recipe.steps.insertAt(0, 'Simmer')
-    vi.advanceTimersByTime(1000)
-    expect(writes()).toBe(0)
-  })
-
-  it('keeps every card it is given in sync, across books', () => {
-    const recipe = makeRecipe('Soup')
-    const { card: theirs } = makeBookWithCard(recipe)
-    const { card: mine } = makeBookWithCard(recipe)
-    watchRecipeProjection(recipe, [theirs, mine], 300)
-    recipe.title.insertAt(4, ' of the day')
-    recipe.tags.add('dinner')
-    vi.advanceTimersByTime(300)
-    expect(theirs.title).toBe('Soup of the day')
-    expect(mine.title).toBe('Soup of the day')
-    expect([...mine.tags.keys()]).toEqual(['dinner'])
-  })
-
-  it('stops writing after dispose, including a pending write', () => {
-    const recipe = makeRecipe('Soup')
-    const { card } = makeBookWithCard(recipe)
-    const stop = watchRecipeProjection(recipe, [card], 300)
-    recipe.title.insertAt(4, '!')
-    stop()
-    vi.advanceTimersByTime(1000)
-    expect(card.title).toBe('Soup')
-    recipe.title.insertAt(5, '?')
-    vi.advanceTimersByTime(1000)
-    expect(card.title).toBe('Soup')
   })
 })

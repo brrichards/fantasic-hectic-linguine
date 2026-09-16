@@ -29,26 +29,3 @@
   padding-left: 0.75rem;
   border-left: 3px solid var(--accent-border);
 }
-
-.rich-text-view pre {
-  margin: 0 0 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  background: var(--code-bg);
-  font-family: var(--mono);
-  font-size: 0.9em;
-  overflow-x: auto;
-}
-
-.rich-text-view .checklist {
-  list-style: none;
-  padding-left: 0.25rem;
-}
-
-.rich-text-view .check-item::before {
-  content: '☐ ';
-}
-
-.rich-text-view .check-item.checked::before {
-  content: '☑ ';
-}

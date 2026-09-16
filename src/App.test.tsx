@@ -206,10 +206,10 @@ describe('App on the home book', () => {
     await seed(session, 'Soup')
     home.cards.add(
       new RecipeCard({
-        containerId: 'container-missing',
+        id: 'container-missing',
         title: 'Ghost',
         tags: {},
-        updatedAt: 1,
+        authorId: HOME,
       }),
     )
     render(<App session={session} reload={reload} />)
@@ -265,7 +265,7 @@ describe('App visiting another book', () => {
     render(<App session={session} reload={reload} />)
     const row = screen.getAllByRole('listitem')[0]
     fireEvent.click(within(row).getByRole('button', { name: /save to my book/i }))
-    expect(home.cards.findById(soup.id)?.containerId).toBe(soup.containerId)
+    expect(home.cards.findById(soup.id)).toBeDefined()
     expect(within(row).getByRole('button', { name: /saved/i })).toBeDisabled()
   })
 
@@ -285,11 +285,10 @@ describe('App visiting another book', () => {
     const { session, reload, home } = setup()
     home.cards.add(
       new RecipeCard({
-        containerId: 'container-x',
+        id: 'container-x',
         title: 'Soup',
         tags: {},
-        originBookId: THEIRS,
-        updatedAt: 1,
+        authorId: THEIRS,
       }),
     )
     render(<App session={session} reload={reload} />)

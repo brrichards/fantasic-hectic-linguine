@@ -68,12 +68,8 @@ export function RecipeList({
               onSelect={onSelect}
               onRemove={() => cards.removeById(card.id)}
               saving={saving}
-              originName={card.originBookId ? nameOfBook?.(card.originBookId) : undefined}
-              onVisitOrigin={
-                card.originBookId && onVisitBook
-                  ? () => onVisitBook(card.originBookId!)
-                  : undefined
-              }
+              nameOfBook={nameOfBook}
+              onVisitBook={onVisitBook}
             />
           ))}
         </ul>
@@ -89,9 +85,11 @@ interface RecipeCardItemProps {
   onSelect: (id: string) => void
   onRemove: () => void
   saving?: SaveControls
-  originName?: string
-  onVisitOrigin?: () => void
+  nameOfBook?: (bookId: string) => string | undefined
+  onVisitBook?: (bookId: string) => void
 }
+
+const originName = (name: string | undefined) => (name ? `from ${name}'s book` : 'from another book')
 
 function RecipeCardItem({
   card,
@@ -100,12 +98,12 @@ function RecipeCardItem({
   onSelect,
   onRemove,
   saving,
-  originName,
-  onVisitOrigin,
+  nameOfBook,
+  onVisitBook,
 }: RecipeCardItemProps) {
   useNode(card)
   useNode(card.tags)
-  const fromElsewhere = card.originBookId !== undefined && card.originBookId !== bookId
+  const fromElsewhere = card.authorId !== bookId
   const saved = saving?.isSaved(card.id) ?? false
   return (
     <li className="recipe-list-item">
@@ -127,26 +125,20 @@ function RecipeCardItem({
         )}
       </button>
       {fromElsewhere && (
-        <button type="button" className="link-button card-origin" onClick={onVisitOrigin}>
-          {originName ? `from ${originName}'s book` : 'from another book'}
+        <button
+          type="button"
+          className="link-button card-origin"
+          onClick={() => onVisitBook?.(card.authorId)}
+        >
+          {originName(nameOfBook?.(card.authorId))}
         </button>
       )}
       {saving && (
-        <button
-          type="button"
-          className="save-button"
-          disabled={saved}
-          onClick={() => saving.onSave(card.id)}
-        >
+        <button type="button" className="save-button" disabled={saved} onClick={() => saving.onSave(card.id)}>
           {saved ? 'Saved' : 'Save to my book'}
         </button>
       )}
-      <button
-        type="button"
-        className="icon-button"
-        aria-label={`Remove ${card.title}`}
-        onClick={onRemove}
-      >
+      <button type="button" className="icon-button" aria-label={`Remove ${card.title}`} onClick={onRemove}>
         ×
       </button>
     </li>

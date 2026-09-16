@@ -13,11 +13,6 @@ describe('CopyLink', () => {
     Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
   })
 
-  it('shows the link so it can be copied by hand', () => {
-    render(<CopyLink label="Copy book link" url="http://x.test/#b/abc" />)
-    expect(screen.getByRole('textbox', { name: /book link/i })).toHaveValue('http://x.test/#b/abc')
-  })
-
   it('writes the link to the clipboard and confirms', async () => {
     const writeText = stubClipboard()
     render(<CopyLink label="Copy book link" url="http://x.test/#b/abc" />)

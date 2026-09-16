@@ -17,8 +17,6 @@ const headerToLineTag: Record<number, LineTagValue> = {
 const listToLineTag: Record<string, LineTagValue | undefined> = {
   bullet: 'li',
   ordered: 'ol',
-  checked: 'checked',
-  unchecked: 'unchecked',
 }
 
 export const lineTagToQuillAttributes: Record<LineTagValue, AttributeMap> = {
@@ -29,14 +27,11 @@ export const lineTagToQuillAttributes: Record<LineTagValue, AttributeMap> = {
   h5: { header: 5 },
   li: { list: 'bullet' },
   ol: { list: 'ordered' },
-  checked: { list: 'checked' },
-  unchecked: { list: 'unchecked' },
   blockquote: { blockquote: true },
-  codeBlock: { 'code-block': 'plain' },
 }
 
 /** Quill attribute names that describe a whole line rather than characters. */
-export const lineAttributeKeys = ['header', 'list', 'blockquote', 'code-block'] as const
+export const lineAttributeKeys = ['header', 'list', 'blockquote'] as const
 
 /**
  * Reads the line-level attribute out of a Quill attribute map, if any.
@@ -45,9 +40,7 @@ export const lineAttributeKeys = ['header', 'list', 'blockquote', 'code-block'] 
  */
 export function parseLineTag(attributes?: QuillAttributes): LineTag | undefined {
   if (!attributes) return undefined
-  const present = lineAttributeKeys.filter(
-    (key) => attributes[key] !== null && attributes[key] !== undefined,
-  )
+  const present = lineAttributeKeys.filter((key) => attributes[key] !== null && attributes[key] !== undefined)
   if (present.length > 1) {
     throw new Error(`Expected at most one line attribute, got ${present.join(', ')}`)
   }
@@ -59,7 +52,6 @@ export function parseLineTag(attributes?: QuillAttributes): LineTag | undefined 
     if (tag !== undefined) return LineTag(tag)
   }
   if (attributes.blockquote === true) return LineTag('blockquote')
-  if (typeof attributes['code-block'] === 'string') return LineTag('codeBlock')
   return undefined
 }
 
@@ -73,9 +65,7 @@ export function quillAttributesToFormat(attributes?: QuillAttributes) {
 }
 
 /** Partial character format for a retain-with-attributes op. Only mentioned keys are set. */
-export function quillAttributesToPartial(
-  attributes?: QuillAttributes,
-): Partial<CharacterFormat> {
+export function quillAttributesToPartial(attributes?: QuillAttributes): Partial<CharacterFormat> {
   if (!attributes) return {}
   const format: Partial<CharacterFormat> = {}
   if ('bold' in attributes) format.bold = attributes.bold === true

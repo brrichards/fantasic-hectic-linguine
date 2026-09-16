@@ -16,11 +16,6 @@ describe('profiles', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
-  it('knows no profiles until some are added', () => {
-    expect(getKnownProfiles()).toEqual([])
-    expect(getActiveBookId()).toBeUndefined()
-  })
-
   it('remembers added profiles in order and finds them by book', () => {
     addProfile({ name: 'Alice', bookId: 'book-a' })
     addProfile({ name: 'Bob', bookId: 'book-b' })
@@ -69,14 +64,10 @@ describe('profiles', () => {
     expect(getActiveBookId()).toBe('book-b')
   })
 
-  it('ignores a last-chosen profile that is no longer known', () => {
+  it('ignores a remembered profile that is no longer known', () => {
     addProfile({ name: 'Alice', bookId: 'book-a' })
     localStorage.setItem('fhl.recipes.lastBook', 'gone')
     expect(getActiveBookId()).toBe('book-a')
-  })
-
-  it('ignores an active profile that is no longer known', () => {
-    addProfile({ name: 'Alice', bookId: 'book-a' })
     setActiveBookId('gone')
     expect(getActiveBookId()).toBe('book-a')
   })

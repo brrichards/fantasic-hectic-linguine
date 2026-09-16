@@ -21,8 +21,8 @@ immediately.
   entrypoints supply `SchemaFactoryBeta`, `FormattedText`, and the in-memory
   test views.
 - [Quill](https://quilljs.com) and `quill-delta` for rich text editing
-- Vitest and React Testing Library for the unit tests. Playwright for the live
-  sync test.
+- Vitest and React Testing Library for the unit tests
+- oxlint and Prettier for linting and formatting
 
 ## Getting started
 
@@ -43,8 +43,7 @@ profile has an empty recipe book. The app signs this tab in as Alice. A profile
 is a name and the container id of its book. The book id is the identity of the
 profile. In the header, each tab selects its profile. As a result, two tabs in one
 browser can be two different users. A new tab opens as the profile that was
-selected last. "Sign in" accepts a book link or a book id. It adds the book as
-a profile. Use this to open the book of a different user as yourself.
+selected last.
 
 The URL contains no data. To share your book, click "Copy book id" in the
 header. The book id is the container id of the book in a compact form of 22
@@ -60,31 +59,15 @@ keeps your position.
 
 ## Scripts
 
-| Script                 | Function                                                     |
-| ---------------------- | ------------------------------------------------------------ |
-| `npm run dev`          | Start the Vite dev server                                    |
-| `npm run start:server` | Start tinylicious, the local Fluid service                   |
-| `npm test`             | Do the unit tests with Vitest                                |
-| `npm run test:e2e`     | Do the live multi-client sync test. Both servers must be on. |
-| `npm run build`        | Check the types and build for production                     |
-| `npm run lint`         | Lint with oxlint                                             |
-
-The e2e test controls Playwright browser clients. It does these steps:
-
-1. Make a recipe.
-2. Change the title in a Quill editor and make sure that the card shows the new
-   title.
-3. In a second tab, change the profile to Bob.
-4. Visit the book of Alice with her copied id.
-5. Edit the shared recipe.
-6. Save the recipe to the book of Bob.
-7. Edit the recipe from the book of Bob.
-8. Make sure that a tag shows in the two books.
-9. Refresh a tab and make sure that it goes back to its open recipe.
-10. Make sure that the app shows an error for an incorrect book id.
-
-To see the test in a browser window, add `-- --headed` to the command. All
-tabs use one browser context. This is the same as one user with two profiles.
+| Script                 | Function                                                          |
+| ---------------------- | ----------------------------------------------------------------- |
+| `npm run dev`          | Start the Vite dev server                                         |
+| `npm run start:server` | Start tinylicious, the local Fluid service                        |
+| `npm test`             | Do the unit tests with Vitest                                     |
+| `npm run build`        | Check formatting, lint, check the types, and build for production |
+| `npm run lint`         | Lint with oxlint                                                  |
+| `npm run format`       | Format everything with Prettier                                   |
+| `npm run format:check` | Report files that Prettier would change                           |
 
 ## How the data is divided
 
@@ -94,11 +77,9 @@ container.
 
 - A **book container**. There is one book container for each user. Its root is
   `RecipeBook { cards }`. Each `RecipeCard` holds the searchable fields of one
-  recipe: the title, the tags, and the time of the last update. The card also
-  holds the id of the container of that recipe, and `originBookId`. The
-  `originBookId` is the book in which the recipe was made. It identifies the
-  author until profiles exist. The cards are a projection. No code edits the
-  title or the tags of a card directly. The tags on a card are a map with the
+  recipe: the title, the tags, and the author. The id of a card is the id of
+  the container of that recipe. The cards are a projection. No code edits the
+  fields of a card directly. The tags on a card are a map with the
   tag as the key. They are not an array. As a result, when two clients project the
   same recipe at the same time, the result has one entry for each tag. An array
   would keep the two inserts.
@@ -106,15 +87,14 @@ container.
   root is `Recipe`. This is the shared document that the users edit together.
   When a user opens a card, the app opens its container.
 
-Your home book stays open until the page closes. When the URL names the book
+Your home book stays open until the page closes. When this tab visits the book
 of a different user, the app opens a second book. When you save a recipe from
-that book, the app adds a card with the same id and the same container id to
-your book. Not more than one recipe container is open at one time. This is the
+that book, the app adds a card with the same id to your book. Not more than one recipe container is open at one time. This is the
 selected recipe. When you select a different recipe, the app closes the
 previous container after the service acknowledges its edits. When a recipe is
 open, the client syncs its cards in each open book one time. Then the client
 monitors the title and the tags of the recipe. When the projection is
-different, the client writes the new values after a short delay. As a result, a second
+different, the client writes the new values at once. As a result, a second
 client that reads one of the books sees the new title immediately. Cards in
 books that no user has open stay out of date until a user opens that recipe
 from that book.

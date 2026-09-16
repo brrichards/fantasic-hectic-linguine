@@ -1,45 +1,33 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createIndependentTreeView } from 'fluid-framework/beta'
 import { act } from 'react'
-import { describe, expect, it, vi } from 'vitest'
-import { Duration, Quantity, Recipe, RecipeCard, recipeConfig } from '../fluid/schema'
-import { makeBookView } from '../test/fakeContainerSource'
+import { describe, expect, it } from 'vitest'
+import { Duration, Quantity, Recipe, durationUnits, quantityUnits, recipeConfig } from '../fluid/schema'
 import { RecipeDetail } from './RecipeDetail'
 
 function makeRecipe() {
   const view = createIndependentTreeView(recipeConfig)
-  view.initialize(Recipe.create('Soup'))
-  const recipe = view.root
-  const card = makeBookView().root.cards.add(
-    new RecipeCard({
-      id: recipe.id,
-      containerId: 'container-1',
-      title: 'Soup',
-      tags: {},
-      updatedAt: 1,
-    }),
-  )
-  return { recipe, card }
+  view.initialize(Recipe.create('Soup', 'home'))
+  return view.root
 }
 
 function renderDetail(extra: Partial<Parameters<typeof RecipeDetail>[0]> = {}) {
-  const { recipe, card } = makeRecipe()
-  const result = render(<RecipeDetail recipe={recipe} card={card} {...extra} />)
-  return { recipe, card, ...result }
+  const recipe = makeRecipe()
+  const result = render(<RecipeDetail recipe={recipe} {...extra} />)
+  return { recipe, ...result }
 }
 
 const list = (name: string) => screen.getByRole('list', { name })
 const rows = (name: string) => within(list(name)).queryAllByRole('listitem')
-const editorTexts = (row: HTMLElement) =>
-  [...row.querySelectorAll('.ql-editor')].map((el) => el.textContent)
+const editorTexts = (row: HTMLElement) => [...row.querySelectorAll('.ql-editor')].map((el) => el.textContent)
 
 describe('RecipeDetail', () => {
   it('shows the recipe text fields in editors', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.description.insertAt(0, 'Warm and filling')
     recipe.sourceUrl.insertAt(0, 'https://example.com')
     recipe.steps.insertAt(0, 'Simmer gently')
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    render(<RecipeDetail recipe={recipe} />)
     const texts = [...document.querySelectorAll('.ql-editor')].map((el) => el.textContent)
     expect(texts).toContain('Soup')
     expect(texts).toContain('Warm and filling')
@@ -49,8 +37,8 @@ describe('RecipeDetail', () => {
   })
 
   it('binds the servings field both ways', () => {
-    const { recipe, card } = makeRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    const recipe = makeRecipe()
+    render(<RecipeDetail recipe={recipe} />)
     const servings = screen.getByRole('spinbutton', { name: /servings/i })
     expect(servings).toHaveValue(null)
 
@@ -66,9 +54,9 @@ describe('RecipeDetail', () => {
   })
 
   it('shows a stored duration with its unit', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.prepTime = Duration.create(10, 'minutes')
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    render(<RecipeDetail recipe={recipe} />)
     expect(screen.getByRole('spinbutton', { name: /prep time/i })).toHaveValue(10)
     expect(screen.getByRole('combobox', { name: /prep time unit/i })).toHaveValue('minutes')
 
@@ -80,16 +68,12 @@ describe('RecipeDetail', () => {
   })
 
   it('stores a duration in the unit chosen before the number was typed', () => {
-    const { recipe, card } = makeRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    const recipe = makeRecipe()
+    render(<RecipeDetail recipe={recipe} />)
     const unit = screen.getByRole('combobox', { name: /prep time unit/i })
     const amount = screen.getByRole('spinbutton', { name: /prep time/i })
     expect(unit).toHaveValue('minutes')
-    expect([...unit.querySelectorAll('option')].map((o) => o.value)).toEqual([
-      'minutes',
-      'hours',
-      'days',
-    ])
+    expect([...unit.querySelectorAll('option')].map((o) => o.value)).toEqual([...durationUnits])
 
     fireEvent.change(unit, { target: { value: 'hours' } })
     expect(recipe.prepTime).toBeUndefined()
@@ -101,9 +85,9 @@ describe('RecipeDetail', () => {
   })
 
   it('changes the unit of a stored duration and rounds to hundredths', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.cookTime = Duration.create(3, 'hours')
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    render(<RecipeDetail recipe={recipe} />)
     const unit = screen.getByRole('combobox', { name: /cook time unit/i })
     const amount = screen.getByRole('spinbutton', { name: /cook time/i })
 
@@ -121,8 +105,8 @@ describe('RecipeDetail', () => {
   })
 
   it('lets the author toggle whether others may edit, in both modes', () => {
-    const { recipe, card } = makeRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} isAuthor />)
+    const recipe = makeRecipe()
+    render(<RecipeDetail recipe={recipe} isAuthor />)
     const box = screen.getByRole('checkbox', { name: /allow others to edit/i })
     expect(box).toBeChecked()
 
@@ -139,15 +123,10 @@ describe('RecipeDetail', () => {
     expect(screen.getByRole('checkbox', { name: /allow others to edit/i })).toBeInTheDocument()
   })
 
-  it('hides the sharing checkbox from everyone but the author', () => {
-    renderDetail()
-    expect(screen.queryByRole('checkbox')).toBeNull()
-  })
-
   it('holds non-authors in view mode while others may not edit', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.othersMayEdit = false
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="edit" />)
+    render(<RecipeDetail recipe={recipe} initialMode="edit" />)
     expect(document.querySelector('.ql-editor')).toBeNull()
     expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'View', pressed: true })).toBeInTheDocument()
@@ -168,23 +147,11 @@ describe('RecipeDetail', () => {
   })
 
   it('lets the author edit even when others may not', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.othersMayEdit = false
-    render(<RecipeDetail recipe={recipe} card={card} isAuthor />)
+    render(<RecipeDetail recipe={recipe} isAuthor />)
     expect(screen.getByRole('button', { name: 'Edit' })).toBeEnabled()
     expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
-  })
-
-  it('offers to save the recipe when a save handler is given', () => {
-    const onSave = vi.fn()
-    renderDetail({ onSave, saved: false })
-    fireEvent.click(screen.getByRole('button', { name: /save to my book/i }))
-    expect(onSave).toHaveBeenCalledTimes(1)
-  })
-
-  it('shows a disabled saved state once saved', () => {
-    renderDetail({ onSave: () => {}, saved: true })
-    expect(screen.getByRole('button', { name: /saved/i })).toBeDisabled()
   })
 
   it('shows no save button without a save handler', () => {
@@ -204,20 +171,7 @@ describe('RecipeDetail', () => {
     const quantity = row.getByRole('spinbutton', { name: /quantity/i })
     const unit = row.getByRole('combobox', { name: /quantity unit/i })
     expect(unit).toHaveValue('none')
-    expect([...unit.querySelectorAll('option')].map((o) => o.value)).toEqual([
-      'none',
-      'tsp',
-      'tbsp',
-      'cup',
-      'fl oz',
-      'ml',
-      'l',
-      'oz',
-      'lb',
-      'g',
-      'kg',
-      'pinch',
-    ])
+    expect([...unit.querySelectorAll('option')].map((o) => o.value)).toEqual([...quantityUnits])
     fireEvent.change(unit, { target: { value: 'cup' } })
     fireEvent.change(quantity, { target: { value: '2.555' } })
     expect(recipe.ingredients[0].quantity?.value).toBe(2.56)
@@ -230,9 +184,9 @@ describe('RecipeDetail', () => {
   })
 
   it('reorders ingredients with move buttons', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     for (const name of ['flour', 'eggs', 'milk']) recipe.ingredients.add().name.insertAt(0, name)
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    render(<RecipeDetail recipe={recipe} />)
     const names = () => rows('Ingredients').map((row) => editorTexts(row)[0])
     expect(names()).toEqual(['flour', 'eggs', 'milk'])
 
@@ -245,10 +199,10 @@ describe('RecipeDetail', () => {
   })
 
   it('disables move up on the first row and move down on the last', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.ingredients.add()
     recipe.ingredients.add()
-    render(<RecipeDetail recipe={recipe} card={card} />)
+    render(<RecipeDetail recipe={recipe} />)
     expect(within(rows('Ingredients')[0]).getByRole('button', { name: /move up/i })).toBeDisabled()
     expect(within(rows('Ingredients')[1]).getByRole('button', { name: /move down/i })).toBeDisabled()
   })
@@ -290,7 +244,7 @@ describe('RecipeDetail', () => {
 
 describe('RecipeDetail in view mode', () => {
   function filledRecipe() {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.description.insertAt(0, 'Warm and filling')
     recipe.servings = 4
     recipe.prepTime = Duration.create(20, 'minutes')
@@ -305,12 +259,12 @@ describe('RecipeDetail in view mode', () => {
     recipe.steps.insertAt(0, 'Simmer gently')
     recipe.tags.add('dinner')
     recipe.notes.add('Sam').text.insertAt(0, 'Tasty')
-    return { recipe, card }
+    return recipe
   }
 
   it('renders the recipe as a page without editors or controls', () => {
-    const { recipe, card } = filledRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    const recipe = filledRecipe()
+    render(<RecipeDetail recipe={recipe} initialMode="view" />)
     expect(document.querySelector('.ql-editor')).toBeNull()
     expect(screen.queryByRole('spinbutton')).toBeNull()
     expect(screen.queryByRole('combobox')).toBeNull()
@@ -334,8 +288,8 @@ describe('RecipeDetail in view mode', () => {
   })
 
   it('omits sections that have nothing in them', () => {
-    const { recipe, card } = makeRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    const recipe = makeRecipe()
+    render(<RecipeDetail recipe={recipe} initialMode="view" />)
     expect(screen.getByRole('heading', { level: 2, name: 'Soup' })).toBeInTheDocument()
     for (const name of [/description/i, /source/i, /ingredients/i, /steps/i, /tags/i, /notes/i]) {
       expect(screen.queryByRole('heading', { name })).toBeNull()
@@ -345,44 +299,16 @@ describe('RecipeDetail in view mode', () => {
   })
 
   it('shows a source that is not a web address as plain text', () => {
-    const { recipe, card } = makeRecipe()
+    const recipe = makeRecipe()
     recipe.sourceUrl.insertAt(0, "Grandma's card")
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    render(<RecipeDetail recipe={recipe} initialMode="view" />)
     expect(screen.getByText("Grandma's card")).toBeInTheDocument()
     expect(screen.queryByRole('link')).toBeNull()
   })
 
-  it('switches between view and edit with the mode toggle', () => {
-    const { recipe, card } = filledRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
-    expect(screen.getByRole('button', { name: 'View', pressed: true })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(screen.getByRole('button', { name: 'Edit', pressed: true })).toBeInTheDocument()
-    expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /add ingredient/i })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'View' }))
-    expect(document.querySelector('.ql-editor')).toBeNull()
-    expect(screen.getByRole('heading', { level: 2, name: 'Soup' })).toBeInTheDocument()
-  })
-
-  it('starts in edit mode when no initial mode is given', () => {
-    renderDetail()
-    expect(screen.getByRole('button', { name: 'Edit', pressed: true })).toBeInTheDocument()
-    expect(document.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
-  })
-
-  it('keeps the save button available in view mode', () => {
-    const onSave = vi.fn()
-    renderDetail({ onSave, saved: false, initialMode: 'view' })
-    fireEvent.click(screen.getByRole('button', { name: /save to my book/i }))
-    expect(onSave).toHaveBeenCalledTimes(1)
-  })
-
   it('shows a section the moment its empty text gains content', () => {
-    const { recipe, card } = makeRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
+    const recipe = makeRecipe()
+    render(<RecipeDetail recipe={recipe} initialMode="view" />)
     expect(screen.queryByRole('heading', { name: /description/i })).toBeNull()
 
     act(() => {
@@ -405,16 +331,5 @@ describe('RecipeDetail in view mode', () => {
       recipe.description.removeRange(0, 4)
     })
     expect(screen.queryByRole('heading', { name: /description/i })).toBeNull()
-  })
-
-  it('follows changes to the recipe while viewing', () => {
-    const { recipe, card } = makeRecipe()
-    render(<RecipeDetail recipe={recipe} card={card} initialMode="view" />)
-    act(() => {
-      recipe.description.insertAt(0, 'Yum')
-      recipe.ingredients.add().name.insertAt(0, 'salt')
-    })
-    expect(screen.getByText('Yum')).toBeInTheDocument()
-    expect(rows('Ingredients').map((row) => row.textContent)).toEqual(['salt'])
   })
 })

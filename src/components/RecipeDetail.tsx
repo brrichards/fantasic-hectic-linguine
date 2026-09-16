@@ -7,9 +7,8 @@ import {
   type Ingredient,
   type Note,
   type QuantityUnit,
+  type Ingredients,
   type Recipe,
-  type RecipeCard,
-  type RichText,
 } from '../fluid/schema'
 import { useNode } from '../hooks/useNode'
 import { RichTextEditor } from '../text/RichTextEditor'
@@ -19,8 +18,6 @@ export type DetailMode = 'view' | 'edit'
 
 interface RecipeDetailProps {
   recipe: Recipe
-  /** The recipe's card in the book; holds the sharing settings. */
-  card: RecipeCard
   /** When given, offers to save this recipe into the user's own book. */
   onSave?: () => void
   saved?: boolean
@@ -32,13 +29,11 @@ interface RecipeDetailProps {
 
 export function RecipeDetail({
   recipe,
-  card,
   onSave,
   saved = false,
   initialMode = 'edit',
   isAuthor = false,
 }: RecipeDetailProps) {
-  useNode(card)
   useNode(recipe)
   const canEdit = isAuthor || recipe.othersMayEdit
   const [mode, setMode] = useState<DetailMode>(canEdit ? initialMode : 'view')
@@ -161,7 +156,7 @@ function RecipeEditor({ recipe, titleControls }: { recipe: Recipe; titleControls
         <h3>Tags</h3>
         <ul aria-label="Tags" className="plain-list tag-list">
           {recipe.tags.map((tag, index) => (
-            <li key={tagKey(tag, index)} className="row">
+            <li key={index} className="row">
               <RichTextEditor node={tag} variant="line" />
               <button
                 type="button"
@@ -188,11 +183,6 @@ function RecipeEditor({ recipe, titleControls }: { recipe: Recipe; titleControls
       </section>
     </div>
   )
-}
-
-/** Tags are bare RichText nodes with no identifier field, so fall back to position. */
-function tagKey(tag: RichText, index: number): string {
-  return `${index}:${tag.fullString()}`
 }
 
 interface MeasureFieldProps<Unit extends string> {
@@ -280,18 +270,12 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
   )
 }
 
-interface OrderedCollection {
-  readonly length: number
-  move(from: number, to: number): void
-  removeAt(index: number): void
-}
-
 function RowControls({
   collection,
   index,
   label,
 }: {
-  collection: OrderedCollection
+  collection: Ingredients
   index: number
   label: string
 }) {
@@ -302,7 +286,7 @@ function RowControls({
         className="icon-button"
         aria-label="Move up"
         disabled={index === 0}
-        onClick={() => collection.move(index, index - 1)}
+        onClick={() => collection.swapWithNext(index - 1)}
       >
         ↑
       </button>
@@ -311,7 +295,7 @@ function RowControls({
         className="icon-button"
         aria-label="Move down"
         disabled={index === collection.length - 1}
-        onClick={() => collection.move(index, index + 1)}
+        onClick={() => collection.swapWithNext(index)}
       >
         ↓
       </button>

@@ -55,16 +55,14 @@ function isBlankParagraph(line: Line): boolean {
   return line.segments.length === 0 && blockKind(line) === 'paragraph'
 }
 
-type BlockKind = 'paragraph' | 'header' | 'bullet' | 'ordered' | 'check' | 'blockquote' | 'code'
+type BlockKind = 'paragraph' | 'header' | 'bullet' | 'ordered' | 'blockquote'
 
 function blockKind(line: Line): BlockKind {
   const { attributes } = line
   if (typeof attributes.header === 'number') return 'header'
   if (attributes.list === 'bullet') return 'bullet'
   if (attributes.list === 'ordered') return 'ordered'
-  if (attributes.list === 'checked' || attributes.list === 'unchecked') return 'check'
   if (attributes.blockquote === true) return 'blockquote'
-  if (attributes['code-block'] !== undefined && attributes['code-block'] !== null) return 'code'
   return 'paragraph'
 }
 
@@ -86,7 +84,7 @@ function renderBlocks(lines: Line[]): ReactNode[] {
   while (index < lines.length) {
     const line = lines[index]
     const kind = blockKind(line)
-    if (kind === 'bullet' || kind === 'ordered' || kind === 'check' || kind === 'code') {
+    if (kind === 'bullet' || kind === 'ordered') {
       const run: Line[] = []
       while (index < lines.length && blockKind(lines[index]) === kind) run.push(lines[index++])
       blocks.push(renderRun(kind, run, blocks.length))
@@ -108,35 +106,10 @@ function renderBlocks(lines: Line[]): ReactNode[] {
   return blocks
 }
 
-function renderRun(kind: BlockKind, run: Line[], key: number): ReactNode {
-  if (kind === 'code') {
-    return (
-      <pre key={key}>
-        {run.map((line, index) => (
-          <Fragment key={index}>
-            {renderSegments(line.segments)}
-            {index < run.length - 1 ? '\n' : null}
-          </Fragment>
-        ))}
-      </pre>
-    )
-  }
-  const items = run.map((line, index) => (
-    <li
-      key={index}
-      className={
-        kind === 'check' ? (line.attributes.list === 'checked' ? 'check-item checked' : 'check-item') : undefined
-      }
-    >
-      {renderSegments(line.segments)}
-    </li>
-  ))
+function renderRun(kind: 'bullet' | 'ordered', run: Line[], key: number): ReactNode {
+  const items = run.map((line, index) => <li key={index}>{renderSegments(line.segments)}</li>)
   if (kind === 'ordered') return <ol key={key}>{items}</ol>
-  return (
-    <ul key={key} className={kind === 'check' ? 'checklist' : undefined}>
-      {items}
-    </ul>
-  )
+  return <ul key={key}>{items}</ul>
 }
 
 /** Renders a rich text node as plain HTML elements, following the node as it changes. */

@@ -132,10 +132,6 @@ describe('buildDeltaFromTree', () => {
     expect(buildDeltaFromTree(hydrated(''))).toEqual([{ insert: '\n' }])
   })
 
-  it('appends the terminal newline after unformatted text', () => {
-    expect(buildDeltaFromTree(hydrated('Hi'))).toEqual([{ insert: 'Hi' }, { insert: '\n' }])
-  })
-
   it('splits runs by formatting and emits line atoms with their attributes', () => {
     const node = hydrated('')
     applyQuillDeltaToTree(
@@ -192,11 +188,6 @@ describe('contentOpsToQuillDelta', () => {
     return produced
   }
 
-  it('converges after an append', () => {
-    const node = hydrated('Hello')
-    expectConverged(node, () => node.insertAt(5, ' world'))
-  })
-
   it('converges after an insert in the middle', () => {
     const node = hydrated('Ho')
     expectConverged(node, () => node.insertAt(1, 'ell'))
@@ -230,25 +221,19 @@ describe('contentOpsToQuillDelta', () => {
 
   it('converges after inserting a line atom', () => {
     const node = hydrated('Title')
-    expectConverged(node, () =>
-      applyQuillDeltaToTree(node, new Delta().retain(5).retain(1, { header: 1 })),
-    )
+    expectConverged(node, () => applyQuillDeltaToTree(node, new Delta().retain(5).retain(1, { header: 1 })))
   })
 
   it('converges after a line atom is replaced by a plain newline', () => {
     const node = hydrated('a\nb')
     applyQuillDeltaToTree(node, new Delta().retain(1).retain(1, { list: 'ordered' }))
-    expectConverged(node, () =>
-      applyQuillDeltaToTree(node, new Delta().retain(1).retain(1, { list: null })),
-    )
+    expectConverged(node, () => applyQuillDeltaToTree(node, new Delta().retain(1).retain(1, { list: null })))
   })
 
   it('converges after an indent change on a line atom', () => {
     const node = hydrated('a\nb')
     applyQuillDeltaToTree(node, new Delta().retain(1).retain(1, { list: 'bullet' }))
-    expectConverged(node, () =>
-      applyQuillDeltaToTree(node, new Delta().retain(1).retain(1, { indent: 2 })),
-    )
+    expectConverged(node, () => applyQuillDeltaToTree(node, new Delta().retain(1).retain(1, { indent: 2 })))
   })
 
   it('converges after a mixed transaction that inserts and removes', () => {

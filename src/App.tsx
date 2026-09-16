@@ -110,8 +110,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
 
   // Another client removed the card we have open: show the list right away
   // and release the container, without waiting for a state round-trip.
-  const openCardGone =
-    panel.status === 'open' && session.book.cards.findById(panel.card.id) === undefined
+  const openCardGone = panel.status === 'open' && session.book.cards.findById(panel.card.id) === undefined
   const shown: Panel = openCardGone ? { status: 'idle' } : panel
   useEffect(() => {
     if (!openCardGone) return
@@ -165,7 +164,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
   const nameOfBook = (id: string) => profileForBook(id)?.name
   const owner = session.isHome ? undefined : nameOfBook(bookId)
   /** The author is whoever owns the book a recipe was created in. */
-  const isAuthor = (card: RecipeCard) => (card.originBookId ?? bookId) === session.homeBookId
+  const isAuthor = (card: RecipeCard) => card.authorId === session.homeBookId
 
   return (
     <main className="app">
@@ -221,7 +220,6 @@ function App({ session, reload = () => location.reload() }: AppProps) {
         <RecipeDetail
           key={shown.card.id}
           recipe={shown.recipe}
-          card={shown.card}
           onSave={saving ? () => saving.onSave(shown.card.id) : undefined}
           saved={saving?.isSaved(shown.card.id)}
           initialMode={shown.mode}

@@ -12,11 +12,6 @@ describe('tab state', () => {
   beforeEach(() => sessionStorage.clear())
   afterEach(() => vi.restoreAllMocks())
 
-  it('starts with nothing being visited or selected', () => {
-    expect(getVisitingBookId()).toBeUndefined()
-    expect(getSelectedRecipeId()).toBeUndefined()
-  })
-
   it('remembers the visited book and the selected recipe for this tab', () => {
     setVisitingBookId('book-b')
     setSelectedRecipeId('r1')

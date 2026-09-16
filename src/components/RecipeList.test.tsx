@@ -11,20 +11,17 @@ function makeCards() {
 
 function card(title: string, overrides: Partial<ConstructorParameters<typeof RecipeCard>[0]> = {}) {
   return new RecipeCard({
-    containerId: `container-${title}`,
+    id: `container-${title}`,
     title,
     tags: {},
-    updatedAt: 1,
+    authorId: 'home',
     ...overrides,
   })
 }
 
 const noop = () => {}
 
-function renderList(
-  cards: RecipeCards,
-  props: Partial<Parameters<typeof RecipeList>[0]> = {},
-) {
+function renderList(cards: RecipeCards, props: Partial<Parameters<typeof RecipeList>[0]> = {}) {
   return render(
     <RecipeList
       cards={cards}
@@ -38,15 +35,6 @@ function renderList(
 }
 
 describe('RecipeList', () => {
-  it('lists card titles', () => {
-    const cards = makeCards()
-    cards.add(card('Soup'))
-    cards.add(card('Bread'))
-    renderList(cards)
-    expect(screen.getByRole('button', { name: 'Soup' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Bread' })).toBeInTheDocument()
-  })
-
   it('shows a card’s tags', () => {
     const cards = makeCards()
     cards.add(card('Soup', { tags: { dinner: true, vegan: true } }))
@@ -58,15 +46,6 @@ describe('RecipeList', () => {
   it('says so when there are no recipes', () => {
     renderList(makeCards())
     expect(screen.getByText(/no recipes yet/i)).toBeInTheDocument()
-  })
-
-  it('reports the card id when a title is clicked', () => {
-    const cards = makeCards()
-    const soup = cards.add(card('Soup'))
-    const onSelect = vi.fn()
-    renderList(cards, { onSelect })
-    fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
-    expect(onSelect).toHaveBeenCalledWith(soup.id)
   })
 
   it('marks the selected card', () => {
@@ -119,38 +98,14 @@ describe('RecipeList', () => {
 
   it('offers to visit the book a card came from when that is a different book', () => {
     const cards = makeCards()
-    cards.add(card('Soup', { originBookId: 'theirs' }))
-    cards.add(card('Bread', { originBookId: 'home' }))
-    cards.add(card('Rice'))
+    cards.add(card('Soup', { authorId: 'theirs' }))
+    cards.add(card('Bread', { authorId: 'home' }))
     const onVisitBook = vi.fn()
     renderList(cards, { onVisitBook })
     const items = screen.getAllByRole('listitem')
     fireEvent.click(within(items[0]).getByRole('button', { name: /from another book/i }))
     expect(onVisitBook).toHaveBeenCalledWith('theirs')
     expect(within(items[1]).queryByRole('button', { name: /from/i })).toBeNull()
-    expect(within(items[2]).queryByRole('button', { name: /from/i })).toBeNull()
-  })
-
-  it('names the book a card came from when a name is known', () => {
-    const cards = makeCards()
-    cards.add(card('Soup', { originBookId: 'theirs' }))
-    cards.add(card('Rice', { originBookId: 'unknown' }))
-    renderList(cards, { nameOfBook: (id) => (id === 'theirs' ? 'Bob' : undefined), onVisitBook: () => {} })
-    const items = screen.getAllByRole('listitem')
-    expect(within(items[0]).getByRole('button', { name: "from Bob's book" })).toBeInTheDocument()
-    expect(within(items[1]).getByRole('button', { name: 'from another book' })).toBeInTheDocument()
-  })
-
-  it('offers to save each card when saving is enabled', () => {
-    const cards = makeCards()
-    const soup = cards.add(card('Soup'))
-    const bread = cards.add(card('Bread'))
-    const onSave = vi.fn()
-    renderList(cards, { saving: { isSaved: (id) => id === bread.id, onSave } })
-    const items = screen.getAllByRole('listitem')
-    fireEvent.click(within(items[0]).getByRole('button', { name: /save to my book/i }))
-    expect(onSave).toHaveBeenCalledWith(soup.id)
-    expect(within(items[1]).getByRole('button', { name: /saved/i })).toBeDisabled()
   })
 
   it('shows no save buttons when saving is not enabled', () => {

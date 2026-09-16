@@ -87,11 +87,11 @@ export const tinyliciousSource: ContainerSource = {
   async createRecipe(recipe: Recipe) {
     const { container, view } = await createNew(recipeConfig)
     view.initialize(recipe)
-    const containerId = await container.attach()
-    return { containerId, ...opened(container, view) }
+    const id = await container.attach()
+    return { id, ...opened(container, view) }
   },
-  async openRecipe(containerId: string) {
-    const { container, view } = await openExisting(containerId, recipeConfig)
+  async openRecipe(id: string) {
+    const { container, view } = await openExisting(id, recipeConfig)
     return opened(container, view)
   },
 }
