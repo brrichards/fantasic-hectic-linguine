@@ -1,6 +1,8 @@
-import { createIndependentTreeView } from 'fluid-framework/beta'
+import { TreeViewConfiguration } from 'fluid-framework'
+import { createIndependentTreeAlpha } from 'fluid-framework/alpha'
+import { SchemaFactoryBeta, createIndependentTreeView } from 'fluid-framework/beta'
 import { describe, expect, it } from 'vitest'
-import { Duration, Quantity, Recipe, RecipeCard, recipeConfig } from './schema'
+import { Duration, Quantity, Recipe, RecipeCard, RecipeCards, bookConfig, recipeConfig } from './schema'
 import { makeBookView } from '../test/fakeContainerSource'
 
 /** A hydrated recipe, as it would be the root of a recipe container. */
@@ -49,6 +51,25 @@ describe('Recipe.create', () => {
     expect(recipe.notes.length).toBe(0)
     expect(recipe.authorId).toBe('book-a')
     expect(recipe.othersMayEdit).toBe(true)
+  })
+})
+
+describe('RecipeBook name', () => {
+  it('keeps the name a book was created with', () => {
+    expect(makeBookView('Carol').root.name).toBe('Carol')
+  })
+
+  it('refuses a book made before books had names', () => {
+    const sf = new SchemaFactoryBeta('fhl.recipes')
+    class NamelessBook extends sf.object('RecipeBook', { cards: RecipeCards }) {}
+    const tree = createIndependentTreeAlpha()
+    const before = tree.viewWith(new TreeViewConfiguration({ schema: NamelessBook }))
+    before.initialize(new NamelessBook({ cards: [makeCard({ id: 'a' })] }))
+    before.dispose()
+
+    const view = tree.viewWith(bookConfig)
+    expect(view.compatibility.canView).toBe(false)
+    expect(view.compatibility.canUpgrade).toBe(false)
   })
 })
 

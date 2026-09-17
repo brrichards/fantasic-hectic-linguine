@@ -62,8 +62,8 @@ export function fakeContainerSource() {
 }
 
 /** A hydrated, empty book view. */
-export function makeBookView() {
+export function makeBookView(name = 'Test book') {
   const view = createIndependentTreeView(bookConfig)
-  view.initialize(new RecipeBook({ cards: [] }))
+  view.initialize(new RecipeBook({ name, cards: [] }))
   return view
 }

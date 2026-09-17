@@ -15,11 +15,11 @@ immediately.
 - React 19.2, TypeScript 6, and [Vite](https://vite.dev)
 - [`fluid-framework`](https://www.npmjs.com/package/fluid-framework) 3.x. This
   package is ESM only and requires TypeScript 6 or later. It is used with
-  `@fluidframework/tinylicious-client` and
+  `@fluidframework/azure-client`, which connects to
   [tinylicious](https://fluidframework.com/docs/testing/tinylicious), the local
-  Fluid service. The `fluid-framework/beta` and `fluid-framework/alpha`
-  entrypoints supply `SchemaFactoryBeta`, `FormattedText`, and the in-memory
-  test views.
+  Fluid service, by default, or to Azure Fluid Relay when configured. The
+  `fluid-framework/beta` and `fluid-framework/alpha` entrypoints supply
+  `SchemaFactoryBeta`, `FormattedText`, and the in-memory test views.
 - [Quill](https://quilljs.com) and `quill-delta` for rich text editing
 - Vitest and React Testing Library for the unit tests
 - oxlint and Prettier for linting and formatting
@@ -38,12 +38,24 @@ npm run dev
 
 4. Open http://localhost:5173 in a browser.
 
-On the first use, the app makes two example profiles, Alice and Bob. Each
-profile has an empty recipe book. The app signs this tab in as Alice. A profile
-is a name and the container id of its book. The book id is the identity of the
-profile. In the header, each tab selects its profile. As a result, two tabs in one
-browser can be two different users. A new tab opens as the profile that was
-selected last.
+The app opens on a start page. The start page does not connect to the Fluid
+service, and the browser does not load the Fluid code until you sign in. There
+are two ways to sign in:
+
+- **Create a book.** Type a name and click "Create book". The app makes one
+  book container with that name and signs this tab in to it.
+- **Open a book.** Paste the id of a book that exists and click "Open book".
+  This is how you get back to a book from a different browser or device.
+
+The book id is your identity. The name of a book is in the book container, so
+each device shows the same name. The browser remembers the books that it has
+signed in to, and the start page shows them in a list. Click a name to sign in
+again. Click "Forget" to remove a book from the list. "Forget" does not delete
+the book.
+
+Each tab signs in separately. As a result, two tabs in one browser can be two
+different users. A refresh keeps the tab signed in. A new tab opens on the
+start page. To go back to the start page, click "Sign out" in the header.
 
 The URL contains no data. To share your book, click "Copy book id" in the
 header. The book id is the container id of the book in a compact form of 22
@@ -61,13 +73,37 @@ keeps your position.
 
 | Script                 | Function                                                          |
 | ---------------------- | ----------------------------------------------------------------- |
-| `npm run dev`          | Start the Vite dev server                                         |
+| `npm run dev`          | Start the Vite dev server against local tinylicious               |
+| `npm run dev:azure`    | Start the Vite dev server against Azure Fluid Relay               |
 | `npm run start:server` | Start tinylicious, the local Fluid service                        |
 | `npm test`             | Do the unit tests with Vitest                                     |
 | `npm run build`        | Check formatting, lint, check the types, and build for production |
 | `npm run lint`         | Lint with oxlint                                                  |
 | `npm run format`       | Format everything with Prettier                                   |
 | `npm run format:check` | Report files that Prettier would change                           |
+
+## Connecting to Azure Fluid Relay
+
+The app follows the Fluid Framework examples: one client, `AzureClient`,
+and an environment switch that picks the service. Without the switch, the
+client uses local tinylicious. To use Azure Fluid Relay:
+
+1. Copy `.env.example` to `.env.azure.local`. Git ignores that file.
+2. Fill in the tenant id, the service endpoint, and one tenant key. All three
+   are on the Access Keys page of the Fluid Relay resource in the Azure
+   portal.
+3. Start the app with `npm run dev:azure`. No local server is needed.
+
+Books and recipes on the relay are separate from the local ones. Each book
+that the browser remembers is on one service or the other. When you open a
+book that is on the other service, the start page shows an error. Use
+"Forget" to remove that book from the list, or change modes.
+
+In both modes the browser signs its own tokens with the key, the way the
+examples' `InsecureTokenProvider` does. In Azure mode that puts the tenant
+key in the browser bundle, so this mode is for trying the relay, not for
+sharing with others. A token service that keeps the key on a server is the
+next step for real users.
 
 ## How the data is divided
 
@@ -76,7 +112,7 @@ protects each container separately. A container cannot contain a different
 container.
 
 - A **book container**. There is one book container for each user. Its root is
-  `RecipeBook { cards }`. Each `RecipeCard` holds the searchable fields of one
+  `RecipeBook { name, cards }`. The name is set when the book is made. Each `RecipeCard` holds the searchable fields of one
   recipe: the title, the tags, and the author. The id of a card is the id of
   the container of that recipe. The cards are a projection. No code edits the
   fields of a card directly. The tags on a card are a map with the
@@ -101,10 +137,13 @@ from that book.
 
 ## Known limitations
 
-- The profiles are a local list of names and book ids. The app makes Alice and
-  Bob on the first use. A real sign-in would get the book id from a backend.
-  With this stack, the client cannot select a container id. As a result, the id of a
-  profile is the id that the service gave to its book.
+- A book id is the only thing that you need to sign in. The id that you share
+  so that others can visit your book is the same id, so this is not real
+  authentication. With this stack, the client cannot select a container id.
+  As a result, your identity is the id that the service gave to your book, and
+  you must keep that id to open the book from a different browser. The planned
+  next step is a server that maps a unique name to a book id.
+- A book made before books had names cannot be opened. Make a new book.
 - A saved recipe is shared. It is not a fork. You cannot make your own copy
   that you can change freely.
 - Quill requires a newline at the end of the text. The tree does not store this
