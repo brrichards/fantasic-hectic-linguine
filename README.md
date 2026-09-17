@@ -15,11 +15,11 @@ immediately.
 - React 19.2, TypeScript 6, and [Vite](https://vite.dev)
 - [`fluid-framework`](https://www.npmjs.com/package/fluid-framework) 3.x. This
   package is ESM only and requires TypeScript 6 or later. It is used with
-  `@fluidframework/tinylicious-client` and
+  `@fluidframework/azure-client`, which connects to
   [tinylicious](https://fluidframework.com/docs/testing/tinylicious), the local
-  Fluid service. The `fluid-framework/beta` and `fluid-framework/alpha`
-  entrypoints supply `SchemaFactoryBeta`, `FormattedText`, and the in-memory
-  test views.
+  Fluid service, by default, or to Azure Fluid Relay when configured. The
+  `fluid-framework/beta` and `fluid-framework/alpha` entrypoints supply
+  `SchemaFactoryBeta`, `FormattedText`, and the in-memory test views.
 - [Quill](https://quilljs.com) and `quill-delta` for rich text editing
 - Vitest and React Testing Library for the unit tests
 - oxlint and Prettier for linting and formatting
@@ -61,13 +61,36 @@ keeps your position.
 
 | Script                 | Function                                                          |
 | ---------------------- | ----------------------------------------------------------------- |
-| `npm run dev`          | Start the Vite dev server                                         |
+| `npm run dev`          | Start the Vite dev server against local tinylicious               |
+| `npm run dev:azure`    | Start the Vite dev server against Azure Fluid Relay               |
 | `npm run start:server` | Start tinylicious, the local Fluid service                        |
 | `npm test`             | Do the unit tests with Vitest                                     |
 | `npm run build`        | Check formatting, lint, check the types, and build for production |
 | `npm run lint`         | Lint with oxlint                                                  |
 | `npm run format`       | Format everything with Prettier                                   |
 | `npm run format:check` | Report files that Prettier would change                           |
+
+## Connecting to Azure Fluid Relay
+
+The app follows the Fluid Framework examples: one client, `AzureClient`,
+and an environment switch that picks the service. Without the switch, the
+client uses local tinylicious. To use Azure Fluid Relay:
+
+1. Copy `.env.example` to `.env.azure.local`. Git ignores that file.
+2. Fill in the tenant id, the service endpoint, and one tenant key. All three
+   are on the Access Keys page of the Fluid Relay resource in the Azure
+   portal.
+3. Start the app with `npm run dev:azure`. No local server is needed.
+
+Books and recipes on the relay are separate from the local ones. The ids in
+this browser's profiles point at one service or the other, so switch modes
+with "Reset profiles" on the error page if the app cannot open a book.
+
+In both modes the browser signs its own tokens with the key, the way the
+examples' `InsecureTokenProvider` does. In Azure mode that puts the tenant
+key in the browser bundle, so this mode is for trying the relay, not for
+sharing with others. A token service that keeps the key on a server is the
+next step for real users.
 
 ## How the data is divided
 

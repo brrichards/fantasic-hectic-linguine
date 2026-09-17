@@ -1,4 +1,4 @@
-import { TinyliciousClient } from '@fluidframework/tinylicious-client'
+import { AzureClient } from '@fluidframework/azure-client'
 import {
   ConnectionState,
   SharedTree,
@@ -7,10 +7,19 @@ import {
   type TreeView,
   type TreeViewConfiguration,
 } from 'fluid-framework'
+import { getActiveBookId, profileForBook } from '../profiles'
+import { connectionConfigFromEnv, type TokenUser } from './connection'
 import { Recipe, RecipeBook, bookConfig, recipeConfig } from './schema'
 import type { BookHandle, ContainerSource, OpenedRecipe } from './session'
 
-const client = new TinyliciousClient()
+/** A fresh id per page load, named after the profile this tab is signed in as. */
+function tokenUser(): TokenUser {
+  const bookId = getActiveBookId()
+  const name = bookId === undefined ? undefined : profileForBook(bookId)?.name
+  return { id: crypto.randomUUID(), name: name ?? 'anonymous' }
+}
+
+const client = new AzureClient({ connection: connectionConfigFromEnv(import.meta.env, tokenUser()) })
 
 const containerSchema = {
   initialObjects: { tree: SharedTree },
@@ -82,8 +91,8 @@ export async function loadBook(bookId?: string): Promise<BookHandle> {
   return { view, bookId: await container.attach(), whenSaved: () => whenSaved(container) }
 }
 
-/** Recipe containers on tinylicious. */
-export const tinyliciousSource: ContainerSource = {
+/** Recipe containers on the configured Fluid service. */
+export const fluidSource: ContainerSource = {
   async createRecipe(recipe: Recipe) {
     const { container, view } = await createNew(recipeConfig)
     view.initialize(recipe)

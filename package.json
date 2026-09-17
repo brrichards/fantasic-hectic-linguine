@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:azure": "vite --mode azure",
     "start": "vite",
     "build": "npm run format:check && npm run lint && tsc -b && vite build",
     "lint": "oxlint",
@@ -15,7 +16,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@fluidframework/tinylicious-client": "^3.0.2",
+    "@fluidframework/azure-client": "~3.0.2",
+    "@fluidframework/test-runtime-utils": "~3.0.2",
     "fluid-framework": "^3.0.2",
     "quill": "^2.0.3",
     "quill-delta": "^5.1.0",

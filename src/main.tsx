@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { loadBook, tinyliciousSource } from './fluid/client.ts'
+import { fluidSource, loadBook } from './fluid/client.ts'
 import { RecipeSession, type BookHandle } from './fluid/session.ts'
 import { ensureDummyProfiles, getActiveBookId, resetProfiles } from './profiles.ts'
 import { clearVisitingBookId, getVisitingBookId } from './tabState.ts'
@@ -21,7 +21,7 @@ try {
   if (visiting && visiting !== home.bookId) {
     browsed = await loadBook(visiting)
   }
-  const session = new RecipeSession({ home, browsed }, tinyliciousSource)
+  const session = new RecipeSession({ home, browsed }, fluidSource)
   // Changing book (profile, visit, home) happens on a fresh page, since book
   // containers are loaded once here. Let pending edits be acknowledged first,
   // or a save made just before leaving would be lost.
@@ -48,7 +48,7 @@ try {
     <StrictMode>
       <main>
         <h1>Could not join session</h1>
-        <p>That recipe book could not be opened (a wrong id, or tinylicious restarted?).</p>
+        <p>That recipe book could not be opened (a wrong id, or the Fluid service restarted?).</p>
         <p>
           <button type="button" onClick={goHome}>
             Back to my book
