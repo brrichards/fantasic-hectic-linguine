@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addProfile,
-  ensureDummyProfiles,
+  clearActiveBookId,
+  forgetProfile,
   getActiveBookId,
   getKnownProfiles,
   profileForBook,
-  resetProfiles,
   setActiveBookId,
 } from './profiles'
 
@@ -27,69 +27,47 @@ describe('profiles', () => {
     expect(profileForBook('nope')).toBeUndefined()
   })
 
-  it('does not add the same book twice', () => {
+  it('updates the name of a book that is already known, keeping its place', () => {
     addProfile({ name: 'Alice', bookId: 'book-a' })
-    addProfile({ name: 'Alice again', bookId: 'book-a' })
+    addProfile({ name: 'Bob', bookId: 'book-b' })
+    addProfile({ name: 'Alicia', bookId: 'book-a' })
+    expect(getKnownProfiles()).toEqual([
+      { name: 'Alicia', bookId: 'book-a' },
+      { name: 'Bob', bookId: 'book-b' },
+    ])
+  })
+
+  it('forgets one book and keeps the others', () => {
+    addProfile({ name: 'Alice', bookId: 'book-a' })
+    addProfile({ name: 'Bob', bookId: 'book-b' })
+    forgetProfile('book-a')
+    expect(getKnownProfiles()).toEqual([{ name: 'Bob', bookId: 'book-b' }])
+    forgetProfile('never-known')
     expect(getKnownProfiles()).toHaveLength(1)
   })
 
-  it('defaults the active profile to the first known one', () => {
+  it('has no active book in a tab that has not signed in, whatever books are known', () => {
     addProfile({ name: 'Alice', bookId: 'book-a' })
-    addProfile({ name: 'Bob', bookId: 'book-b' })
-    expect(getActiveBookId()).toBe('book-a')
+    expect(getActiveBookId()).toBeUndefined()
   })
 
-  it('switches the active profile for this tab and remembers it for the browser', () => {
-    addProfile({ name: 'Alice', bookId: 'book-a' })
-    addProfile({ name: 'Bob', bookId: 'book-b' })
-    setActiveBookId('book-b')
-    expect(getActiveBookId()).toBe('book-b')
-    expect(sessionStorage.getItem('fhl.recipes.activeBook')).toBe('book-b')
-    expect(localStorage.getItem('fhl.recipes.lastBook')).toBe('book-b')
-  })
-
-  it('opens a new tab as whoever was chosen last anywhere in the browser', () => {
-    addProfile({ name: 'Alice', bookId: 'book-a' })
-    addProfile({ name: 'Bob', bookId: 'book-b' })
-    setActiveBookId('book-b')
-    sessionStorage.clear() // a fresh tab has no choice of its own
-    expect(getActiveBookId()).toBe('book-b')
-  })
-
-  it("keeps a tab's own choice when another tab chooses differently", () => {
-    addProfile({ name: 'Alice', bookId: 'book-a' })
-    addProfile({ name: 'Bob', bookId: 'book-b' })
-    setActiveBookId('book-b')
-    localStorage.setItem('fhl.recipes.lastBook', 'book-a') // another tab picked Alice
-    expect(getActiveBookId()).toBe('book-b')
-  })
-
-  it('ignores a remembered profile that is no longer known', () => {
-    addProfile({ name: 'Alice', bookId: 'book-a' })
-    localStorage.setItem('fhl.recipes.lastBook', 'gone')
-    expect(getActiveBookId()).toBe('book-a')
-    setActiveBookId('gone')
-    expect(getActiveBookId()).toBe('book-a')
-  })
-
-  it('creates Alice and Bob once, through the given book factory', async () => {
-    let n = 0
-    const createBook = async () => `book-${++n}`
-    expect(await ensureDummyProfiles(createBook)).toEqual([
-      { name: 'Alice', bookId: 'book-1' },
-      { name: 'Bob', bookId: 'book-2' },
-    ])
-    expect(await ensureDummyProfiles(createBook)).toHaveLength(2)
-    expect(n).toBe(2)
-  })
-
-  it('resetProfiles forgets every profile and the active choice', () => {
+  it('signs this tab in, and only this tab', () => {
     addProfile({ name: 'Alice', bookId: 'book-a' })
     setActiveBookId('book-a')
-    resetProfiles()
-    expect(getKnownProfiles()).toEqual([])
+    expect(getActiveBookId()).toBe('book-a')
+    sessionStorage.clear() // a fresh tab has no choice of its own
     expect(getActiveBookId()).toBeUndefined()
-    expect(localStorage.getItem('fhl.recipes.lastBook')).toBeNull()
+  })
+
+  it('signs in to a book this browser has never seen', () => {
+    setActiveBookId('book-new')
+    expect(getActiveBookId()).toBe('book-new')
+  })
+
+  it('signs this tab out', () => {
+    setActiveBookId('book-a')
+    clearActiveBookId()
+    expect(getActiveBookId()).toBeUndefined()
   })
 
   it('survives storage being unavailable', () => {
@@ -99,8 +77,14 @@ describe('profiles', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked')
     })
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
     expect(getKnownProfiles()).toEqual([])
     expect(() => addProfile({ name: 'Alice', bookId: 'book-a' })).not.toThrow()
     expect(() => setActiveBookId('book-a')).not.toThrow()
+    expect(() => clearActiveBookId()).not.toThrow()
+    expect(() => forgetProfile('book-a')).not.toThrow()
+    expect(getActiveBookId()).toBeUndefined()
   })
 })

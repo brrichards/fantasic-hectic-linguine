@@ -203,6 +203,8 @@ export class RecipeCards extends sf.array('RecipeCards', RecipeCard) {
 
 /** The root of a book container. */
 export class RecipeBook extends sf.object('RecipeBook', {
+  /** What the book's owner called it when creating it. */
+  name: sf.string,
   cards: RecipeCards,
 }) {}
 

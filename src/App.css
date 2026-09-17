@@ -335,9 +335,10 @@ select {
   gap: 0.5rem;
 }
 
-.profile-picker {
+.signed-in {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  margin: 0;
   gap: 0.5rem;
   white-space: nowrap;
   color: var(--text-h);
@@ -395,4 +396,43 @@ select {
 
 .visit-book {
   margin-top: 0;
+}
+
+.start-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+  text-align: left;
+}
+
+.start-page h2 {
+  margin: 0;
+  font-size: 1em;
+}
+
+.remembered-books {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.remembered-books li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.remembered-books .muted {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8em;
 }

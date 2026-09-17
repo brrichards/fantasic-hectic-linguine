@@ -9,6 +9,18 @@ export function isCompactId(value: string): boolean {
   return COMPACT.test(value)
 }
 
+/** A book id as people share it: the compact form of a container UUID. */
+export function shareableId(bookId: string): string {
+  return isUuid(bookId) ? compactFromUuid(bookId) : bookId
+}
+
+/** Reads a book id out of a pasted compact id, UUID, or raw id. */
+export function bookIdFromInput(input: string): string | undefined {
+  const text = input.trim()
+  if (!text) return undefined
+  return isCompactId(text) ? uuidFromCompact(text) : text
+}
+
 /** The 16 bytes of a UUID as 22 url-safe base64 characters, no padding. */
 export function compactFromUuid(uuid: string): string {
   if (!isUuid(uuid)) throw new Error(`Not a UUID: ${uuid}`)

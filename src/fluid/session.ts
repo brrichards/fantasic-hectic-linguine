@@ -30,6 +30,18 @@ export interface BookHandle {
   whenSaved?: () => Promise<void>
 }
 
+/** A connection to the Fluid service, made as one user. */
+export interface FluidService {
+  /** Rejects when no book with that id can be opened. */
+  openBook(bookId: string): Promise<BookHandle>
+  /** Creates an empty book with the given name. The service assigns its id. */
+  createBook(name: string): Promise<BookHandle>
+  source: ContainerSource
+}
+
+/** Connects to the Fluid service; `userName` is stamped into the tokens it sends. */
+export type Connect = (userName: string) => Promise<FluidService>
+
 export interface SessionBooks {
   /** This browser's own book, always open. */
   home: BookHandle

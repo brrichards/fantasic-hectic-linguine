@@ -6,8 +6,8 @@ import { RecipeList, type SaveControls } from './components/RecipeList'
 import type { Recipe, RecipeCard } from './fluid/schema'
 import type { RecipeSession } from './fluid/session'
 import { useNode } from './hooks/useNode'
-import { compactFromUuid, isCompactId, isUuid, uuidFromCompact } from './ids'
-import { getKnownProfiles, profileForBook, setActiveBookId } from './profiles'
+import { bookIdFromInput, shareableId } from './ids'
+import { clearActiveBookId, profileForBook } from './profiles'
 import {
   clearSelectedRecipeId,
   clearVisitingBookId,
@@ -28,16 +28,6 @@ interface AppProps {
   reload?: () => void
 }
 
-/** A book id as people share it: the compact form of a container UUID. */
-const shareableId = (bookId: string) => (isUuid(bookId) ? compactFromUuid(bookId) : bookId)
-
-/** Reads a book id out of a pasted compact id, UUID, or raw id. */
-function bookIdFromInput(input: string): string | undefined {
-  const text = input.trim()
-  if (!text) return undefined
-  return isCompactId(text) ? uuidFromCompact(text) : text
-}
-
 function App({ session, reload = () => location.reload() }: AppProps) {
   useNode(session.book.cards)
   useNode(session.homeBook.cards)
@@ -45,7 +35,6 @@ function App({ session, reload = () => location.reload() }: AppProps) {
   const [visitInput, setVisitInput] = useState('')
   // Only the latest open or create request may update the panel.
   const request = useRef(0)
-  const profiles = getKnownProfiles()
   const bookId = session.bookId
 
   const showList = useCallback(() => {
@@ -133,8 +122,8 @@ function App({ session, reload = () => location.reload() }: AppProps) {
       }
 
   /** Any change of book takes effect on a fresh page, since books load once. */
-  const switchProfile = (id: string) => {
-    setActiveBookId(id)
+  const signOut = () => {
+    clearActiveBookId()
     clearVisitingBookId()
     clearSelectedRecipeId()
     reload()
@@ -162,7 +151,6 @@ function App({ session, reload = () => location.reload() }: AppProps) {
   }
 
   const nameOfBook = (id: string) => profileForBook(id)?.name
-  const owner = session.isHome ? undefined : nameOfBook(bookId)
   /** The author is whoever owns the book a recipe was created in. */
   const isAuthor = (card: RecipeCard) => card.authorId === session.homeBookId
 
@@ -170,20 +158,12 @@ function App({ session, reload = () => location.reload() }: AppProps) {
     <main className="app">
       <header className="app-header">
         <div className="book-identity">
-          <label className="profile-picker">
-            You are
-            <select
-              aria-label="You are"
-              value={session.homeBookId}
-              onChange={(event) => switchProfile(event.target.value)}
-            >
-              {profiles.map((profile) => (
-                <option key={profile.bookId} value={profile.bookId}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p className="signed-in">
+            <span>Signed in as {session.homeBook.name}</span>
+            <button type="button" className="link-button" onClick={signOut}>
+              Sign out
+            </button>
+          </p>
           <CopyLink label="Copy book id" url={shareableId(bookId)} className="book-id-row" />
         </div>
         <form onSubmit={submitVisit} className="inline-form visit-book book-id-row">
@@ -199,7 +179,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
       <div>
         {!session.isHome && (
           <p className="book-banner">
-            <span>{owner ? `You are viewing ${owner}'s book.` : 'You are viewing another book.'}</span>
+            <span>You are viewing {session.book.name}'s book.</span>
             <button type="button" className="link-button" onClick={goHome}>
               Back to my book
             </button>

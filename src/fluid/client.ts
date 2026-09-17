@@ -7,19 +7,9 @@ import {
   type TreeView,
   type TreeViewConfiguration,
 } from 'fluid-framework'
-import { getActiveBookId, profileForBook } from '../profiles'
-import { connectionConfigFromEnv, type TokenUser } from './connection'
+import { connectionConfigFromEnv } from './connection'
 import { Recipe, RecipeBook, bookConfig, recipeConfig } from './schema'
-import type { BookHandle, ContainerSource, OpenedRecipe } from './session'
-
-/** A fresh id per page load, named after the profile this tab is signed in as. */
-function tokenUser(): TokenUser {
-  const bookId = getActiveBookId()
-  const name = bookId === undefined ? undefined : profileForBook(bookId)?.name
-  return { id: crypto.randomUUID(), name: name ?? 'anonymous' }
-}
-
-const client = new AzureClient({ connection: connectionConfigFromEnv(import.meta.env, tokenUser()) })
+import type { FluidService, OpenedRecipe } from './session'
 
 const containerSchema = {
   initialObjects: { tree: SharedTree },
@@ -28,6 +18,7 @@ const containerSchema = {
 type RecipeContainer = IFluidContainer<typeof containerSchema>
 
 async function openExisting<TSchema extends ImplicitFieldSchema>(
+  client: AzureClient,
   id: string,
   config: TreeViewConfiguration<TSchema>,
 ): Promise<{ container: RecipeContainer; view: TreeView<TSchema> }> {
@@ -46,6 +37,7 @@ async function openExisting<TSchema extends ImplicitFieldSchema>(
 }
 
 async function createNew<TSchema extends ImplicitFieldSchema>(
+  client: AzureClient,
   config: TreeViewConfiguration<TSchema>,
 ): Promise<{ container: RecipeContainer; view: TreeView<TSchema> }> {
   const { container } = await client.createContainer(containerSchema, '3.0.0')
@@ -78,29 +70,33 @@ function opened(container: RecipeContainer, view: TreeView<typeof Recipe>): Open
 }
 
 /**
- * Opens the book container with the given id, or creates a new empty book
- * when no id is given. Returns the id so the caller can put it in the URL.
+ * Connects to the configured Fluid service. The user gets a fresh id per
+ * page load and the given name.
  */
-export async function loadBook(bookId?: string): Promise<BookHandle> {
-  if (bookId) {
-    const { container, view } = await openExisting(bookId, bookConfig)
-    return { view, bookId, whenSaved: () => whenSaved(container) }
+export function connect(userName: string): FluidService {
+  const user = { id: crypto.randomUUID(), name: userName }
+  const client = new AzureClient({ connection: connectionConfigFromEnv(import.meta.env, user) })
+  return {
+    async openBook(bookId) {
+      const { container, view } = await openExisting(client, bookId, bookConfig)
+      return { view, bookId, whenSaved: () => whenSaved(container) }
+    },
+    async createBook(name) {
+      const { container, view } = await createNew(client, bookConfig)
+      view.initialize(new RecipeBook({ name, cards: [] }))
+      return { view, bookId: await container.attach(), whenSaved: () => whenSaved(container) }
+    },
+    source: {
+      async createRecipe(recipe: Recipe) {
+        const { container, view } = await createNew(client, recipeConfig)
+        view.initialize(recipe)
+        const id = await container.attach()
+        return { id, ...opened(container, view) }
+      },
+      async openRecipe(id: string) {
+        const { container, view } = await openExisting(client, id, recipeConfig)
+        return opened(container, view)
+      },
+    },
   }
-  const { container, view } = await createNew(bookConfig)
-  view.initialize(new RecipeBook({ cards: [] }))
-  return { view, bookId: await container.attach(), whenSaved: () => whenSaved(container) }
-}
-
-/** Recipe containers on the configured Fluid service. */
-export const fluidSource: ContainerSource = {
-  async createRecipe(recipe: Recipe) {
-    const { container, view } = await createNew(recipeConfig)
-    view.initialize(recipe)
-    const id = await container.attach()
-    return { id, ...opened(container, view) }
-  },
-  async openRecipe(id: string) {
-    const { container, view } = await openExisting(id, recipeConfig)
-    return opened(container, view)
-  },
 }

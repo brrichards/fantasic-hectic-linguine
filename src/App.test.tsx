@@ -5,8 +5,8 @@ import App from './App'
 import { RecipeCard } from './fluid/schema'
 import { RecipeSession } from './fluid/session'
 import { compactFromUuid } from './ids'
-import { addProfile, getActiveBookId, setActiveBookId } from './profiles'
-import { getSelectedRecipeId, getVisitingBookId, setSelectedRecipeId } from './tabState'
+import { addProfile, forgetProfile, getActiveBookId, setActiveBookId } from './profiles'
+import { getSelectedRecipeId, getVisitingBookId, setSelectedRecipeId, setVisitingBookId } from './tabState'
 import { fakeContainerSource, makeBookView } from './test/fakeContainerSource'
 
 const HOME = 'home-book'
@@ -18,8 +18,8 @@ function setup({ browsing = false } = {}) {
   addProfile({ name: 'Alice', bookId: HOME })
   addProfile({ name: 'Bob', bookId: THEIRS })
   setActiveBookId(HOME)
-  const home = makeBookView()
-  const theirs = makeBookView()
+  const home = makeBookView('Alice')
+  const theirs = makeBookView('Bob')
   const fake = fakeContainerSource()
   const session = new RecipeSession(
     {
@@ -59,15 +59,23 @@ describe('App on the home book', () => {
     expect(screen.queryByText(/viewing/i)).toBeNull()
   })
 
-  it('shows who you are and reloads as the other profile when switched', () => {
+  it('shows whose book this tab is signed in to, by the name in the book', () => {
     const { session, reload } = setup()
+    forgetProfile(HOME)
     render(<App session={session} reload={reload} />)
-    const picker = screen.getByRole('combobox', { name: /you are/i })
-    expect(picker).toHaveValue(HOME)
-    expect([...picker.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['Alice', 'Bob'])
-    fireEvent.change(picker, { target: { value: THEIRS } })
-    expect(getActiveBookId()).toBe(THEIRS)
+    expect(screen.getByText('Signed in as Alice')).toBeInTheDocument()
+  })
+
+  it('signs this tab out and starts the page over', async () => {
+    const { session, reload } = setup()
+    const card = await seed(session, 'Soup')
+    setSelectedRecipeId(card.id)
+    setVisitingBookId(THEIRS)
+    render(<App session={session} reload={reload} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(getActiveBookId()).toBeUndefined()
     expect(getVisitingBookId()).toBeUndefined()
+    expect(getSelectedRecipeId()).toBeUndefined()
     expect(reload).toHaveBeenCalledTimes(1)
   })
 
@@ -230,6 +238,13 @@ describe('App visiting another book', () => {
     fireEvent.click(screen.getByRole('button', { name: /back to my book/i }))
     expect(getVisitingBookId()).toBeUndefined()
     expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the visited book from the book itself when this browser has never signed in to it', () => {
+    const { session, reload } = setup({ browsing: true })
+    forgetProfile(THEIRS)
+    render(<App session={session} reload={reload} />)
+    expect(screen.getByText(/viewing Bob's book/i)).toBeInTheDocument()
   })
 
   it('lists their cards and creates new recipes in their book', async () => {
