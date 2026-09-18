@@ -191,6 +191,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
           selectedId={selectedId}
           onSelect={(id) => void open(id)}
           onCreate={(title) => void create(title)}
+          isOwner={session.isHome}
           saving={saving}
           nameOfBook={nameOfBook}
           onVisitBook={visitBook}
@@ -213,7 +214,9 @@ function App({ session, reload = () => location.reload() }: AppProps) {
           Could not open this recipe: {shown.message}
         </p>
       ) : (
-        <p className="muted empty-state">Select a recipe, or add a new one.</p>
+        <p className="muted empty-state">
+          {session.isHome ? 'Select a recipe, or add a new one.' : 'Select a recipe.'}
+        </p>
       )}
     </main>
   )

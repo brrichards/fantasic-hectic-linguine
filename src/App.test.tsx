@@ -209,6 +209,15 @@ describe('App on the home book', () => {
     expect(getSelectedRecipeId()).toBeUndefined()
   })
 
+  it('removes a recipe from your own book', async () => {
+    const { session, reload, home } = setup()
+    await seed(session, 'Soup')
+    render(<App session={session} reload={reload} />)
+    fireEvent.click(screen.getByRole('button', { name: /remove soup/i }))
+    expect(home.cards.length).toBe(0)
+    expect(screen.queryByRole('button', { name: 'Soup' })).toBeNull()
+  })
+
   it('returns to the prompt when the open recipe is removed by another client', async () => {
     const { session, reload, home } = setup()
     await seed(session, 'Soup')
@@ -261,18 +270,22 @@ describe('App visiting another book', () => {
     expect(screen.getByText(/viewing Bob's book/i)).toBeInTheDocument()
   })
 
-  it('lists their cards and creates new recipes in their book', async () => {
-    const { session, reload, theirs, home } = setup({ browsing: true })
+  it('lists their cards to save, without adding or removing any', async () => {
+    const { session, reload } = setup({ browsing: true })
     await seed(session, 'Soup')
     render(<App session={session} reload={reload} />)
     expect(screen.getByRole('button', { name: 'Soup' })).toBeInTheDocument()
-    fireEvent.change(screen.getByRole('textbox', { name: /new recipe/i }), {
-      target: { value: 'Bread' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
-    await detailPanel()
-    expect(theirs.cards.map((c) => c.title)).toEqual(['Soup', 'Bread'])
-    expect(home.cards.length).toBe(0)
+    expect(screen.getByRole('button', { name: /save to my book/i })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /new recipe/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /add recipe/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /remove soup/i })).toBeNull()
+  })
+
+  it('prompts only to pick a recipe, since a visitor cannot add one', () => {
+    const { session, reload } = setup({ browsing: true })
+    render(<App session={session} reload={reload} />)
+    expect(screen.getByText(/select a recipe/i)).toBeInTheDocument()
+    expect(screen.queryByText(/add a new one/i)).toBeNull()
   })
 
   it('locks their recipe to view mode when they do not allow editing', async () => {

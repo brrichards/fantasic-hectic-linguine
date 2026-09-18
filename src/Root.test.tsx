@@ -8,7 +8,7 @@ import { getVisitingBookId, setVisitingBookId } from './tabState'
 import { fakeFluid } from './test/fakeFluid'
 
 /** The app proper, as opposed to the start page, is on screen. */
-const theApp = () => screen.findByText('Select a recipe, or add a new one.')
+const theApp = () => screen.findByText(/^Select a recipe/)
 const startPage = () => screen.queryByRole('heading', { name: 'Open a book' })
 
 function openById(bookId: string) {
