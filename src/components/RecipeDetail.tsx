@@ -4,6 +4,7 @@ import {
   durationUnits,
   Quantity,
   quantityUnits,
+  RichText,
   type Ingredient,
   type Note,
   type QuantityUnit,
@@ -12,6 +13,7 @@ import {
 } from '../fluid/schema'
 import { useNode } from '../hooks/useNode'
 import { RichTextEditor } from '../text/RichTextEditor'
+import { RichTextView } from '../text/RichTextView'
 import { RecipeView } from './RecipeView'
 
 export type DetailMode = 'view' | 'edit'
@@ -25,6 +27,8 @@ interface RecipeDetailProps {
   initialMode?: DetailMode
   /** The author decides whether others may edit and is never locked out. */
   isAuthor?: boolean
+  /** Who is signed in: the author of any note added here. */
+  userName?: string
 }
 
 export function RecipeDetail({
@@ -33,6 +37,7 @@ export function RecipeDetail({
   saved = false,
   initialMode = 'edit',
   isAuthor = false,
+  userName = 'anonymous',
 }: RecipeDetailProps) {
   useNode(recipe)
   const canEdit = isAuthor || recipe.othersMayEdit
@@ -82,14 +87,22 @@ export function RecipeDetail({
       {shownMode === 'view' ? (
         <RecipeView recipe={recipe} titleControls={saveButton} />
       ) : (
-        <RecipeEditor recipe={recipe} titleControls={saveButton} />
+        <RecipeEditor recipe={recipe} userName={userName} titleControls={saveButton} />
       )}
     </article>
   )
 }
 
 /** Every field of the recipe in its editor. */
-function RecipeEditor({ recipe, titleControls }: { recipe: Recipe; titleControls?: React.ReactNode }) {
+function RecipeEditor({
+  recipe,
+  userName,
+  titleControls,
+}: {
+  recipe: Recipe
+  userName: string
+  titleControls?: React.ReactNode
+}) {
   useNode(recipe)
   useNode(recipe.ingredients)
   useNode(recipe.tags)
@@ -179,7 +192,7 @@ function RecipeEditor({ recipe, titleControls }: { recipe: Recipe; titleControls
             <NoteRow key={note.id} note={note} onRemove={() => recipe.notes.removeAt(index)} />
           ))}
         </ul>
-        <AddForm label="Note author" button="Add note" onSubmit={(author) => recipe.notes.add(author)} />
+        <AddNote onAdd={(text) => recipe.notes.add(userName, text)} />
       </section>
     </div>
   )
@@ -334,16 +347,32 @@ function NoteRow({ note, onRemove }: { note: Note; onRemove: () => void }) {
   return (
     <li className="row note-row">
       <div className="note-header">
-        <RichTextEditor node={note.author} variant="line" placeholder="author" />
-        <time dateTime={new Date(note.createdAt).toISOString()}>
-          {new Date(note.createdAt).toLocaleString()}
-        </time>
+        <strong>
+          <RichTextView node={note.author} inline />
+        </strong>
         <button type="button" className="icon-button" aria-label="Remove note" onClick={onRemove}>
           ×
         </button>
       </div>
       <RichTextEditor node={note.text} variant="prose" placeholder="Write a note" />
     </li>
+  )
+}
+
+/** A note is written here first, and joins the recipe only once it is added. */
+function AddNote({ onAdd }: { onAdd: (text: RichText) => void }) {
+  const [draft, setDraft] = useState(() => RichText.fromString(''))
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (draft.fullString().trim() === '') return
+    onAdd(draft)
+    setDraft(RichText.fromString(''))
+  }
+  return (
+    <form onSubmit={submit} aria-label="New note" className="note-form">
+      <RichTextEditor node={draft} variant="prose" placeholder="Write a note" />
+      <button type="submit">Add note</button>
+    </form>
   )
 }
 

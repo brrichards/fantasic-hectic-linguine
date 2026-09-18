@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import Quill from 'quill'
 import { act } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -155,6 +156,19 @@ describe('App on the home book', () => {
     const detail = await detailPanel()
     expect(within(detail).getByRole('button', { name: 'Edit', pressed: true })).toBeInTheDocument()
     expect(detail.querySelectorAll('.ql-editor').length).toBeGreaterThan(0)
+  })
+
+  it('signs a new note with the name of whoever is signed in', async () => {
+    const { session, reload } = setup()
+    render(<App session={session} reload={reload} />)
+    fireEvent.change(screen.getByRole('textbox', { name: /new recipe/i }), {
+      target: { value: 'Bread' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /add recipe/i }))
+    const form = within(await detailPanel()).getByRole('form', { name: 'New note' })
+    act(() => (Quill.find(form.querySelector('.ql-container')!) as Quill).insertText(0, 'Tasty', 'user'))
+    fireEvent.click(within(form).getByRole('button', { name: 'Add note' }))
+    expect(session.current!.recipe.notes[0].author.fullString()).toBe('Alice')
   })
 
   it('opens an existing recipe in view mode', async () => {

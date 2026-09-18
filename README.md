@@ -42,9 +42,9 @@ The app opens on a start page. The start page does not connect to the Fluid
 service, and the browser does not load the Fluid code until you sign in. There
 are two ways to sign in:
 
-- **Create a book.** Type a name and click "Create book". The app makes one
+- **Create a book.** Type a name and click "Create". The app makes one
   book container with that name and signs this tab in to it.
-- **Open a book.** Paste the id of a book that exists and click "Open book".
+- **Open a book.** Paste the id of a book that exists and click "Open".
   This is how you get back to a book from a different browser or device.
 
 The book id is your identity. The name of a book is in the book container, so
@@ -60,7 +60,7 @@ start page. To go back to the start page, click "Sign out" in the header.
 The URL contains no data. To share your book, click "Copy book id" in the
 header. The book id is the container id of the book in a compact form of 22
 characters. The other user pastes the id into "Paste a book id to visit" and
-clicks "Visit book". The other user then sees your book. The page shows a "Back
+clicks "Visit". The other user then sees your book. The page shows a "Back
 to my book" button and a "Save to my book" button on each recipe. When the
 other user saves a recipe, the app adds the same shared recipe to the book of
 the other user. The app does not make a copy. An edit from one book or the

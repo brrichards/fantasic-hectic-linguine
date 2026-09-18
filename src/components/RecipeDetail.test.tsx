@@ -1,8 +1,18 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import Quill from 'quill'
 import { createIndependentTreeView } from 'fluid-framework/beta'
 import { act } from 'react'
 import { describe, expect, it } from 'vitest'
-import { Duration, Quantity, Recipe, durationUnits, quantityUnits, recipeConfig } from '../fluid/schema'
+import {
+  Duration,
+  Quantity,
+  Recipe,
+  RichText,
+  durationUnits,
+  quantityUnits,
+  recipeConfig,
+} from '../fluid/schema'
+import { buildDeltaFromTree } from '../text/quillBridge'
 import { RecipeDetail } from './RecipeDetail'
 
 function makeRecipe() {
@@ -20,6 +30,11 @@ function renderDetail(extra: Partial<Parameters<typeof RecipeDetail>[0]> = {}) {
 const list = (name: string) => screen.getByRole('list', { name })
 const rows = (name: string) => within(list(name)).queryAllByRole('listitem')
 const editorTexts = (row: HTMLElement) => [...row.querySelectorAll('.ql-editor')].map((el) => el.textContent)
+
+const noteForm = () => screen.getByRole('form', { name: 'New note' })
+/** The Quill instance behind the box a new note is written in. */
+const noteDraft = () => Quill.find(noteForm().querySelector('.ql-container')!) as Quill
+const addNote = () => fireEvent.click(within(noteForm()).getByRole('button', { name: 'Add note' }))
 
 describe('RecipeDetail', () => {
   it('shows the recipe text fields in editors', () => {
@@ -220,13 +235,48 @@ describe('RecipeDetail', () => {
     expect(recipe.tags.length).toBe(0)
   })
 
-  it('adds a note with the given author', () => {
-    const { recipe } = renderDetail()
-    fireEvent.change(screen.getByRole('textbox', { name: /author/i }), { target: { value: 'Bren' } })
-    fireEvent.click(screen.getByRole('button', { name: /add note/i }))
+  it('adds the written note with the signed-in person as its author', () => {
+    const { recipe } = renderDetail({ userName: 'Bren' })
+    expect(screen.queryByRole('textbox', { name: /author/i })).toBeNull()
+    act(() => {
+      noteDraft().insertText(0, 'Tasty', 'user')
+      noteDraft().formatText(0, 5, 'bold', true, 'user')
+    })
+    expect(recipe.notes.length).toBe(0)
+
+    addNote()
     expect(recipe.notes.length).toBe(1)
     expect(recipe.notes[0].author.fullString()).toBe('Bren')
-    expect(editorTexts(rows('Notes')[0])).toContain('Bren')
+    expect(recipe.notes[0].text.fullString()).toBe('Tasty')
+    expect(JSON.stringify(buildDeltaFromTree(recipe.notes[0].text))).toContain('"bold":true')
+  })
+
+  it('shows an added note with its text editable and its author fixed', () => {
+    renderDetail({ userName: 'Bren' })
+    act(() => noteDraft().insertText(0, 'Tasty', 'user'))
+    addNote()
+    const note = rows('Notes')[0]
+    expect(note).toHaveTextContent('Bren')
+    expect(editorTexts(note)).toEqual(['Tasty'])
+  })
+
+  it('starts a fresh note once one is added', () => {
+    const { recipe } = renderDetail({ userName: 'Bren' })
+    act(() => noteDraft().insertText(0, 'First', 'user'))
+    addNote()
+    expect(noteForm().querySelector('.ql-editor')).toHaveTextContent('')
+
+    act(() => noteDraft().insertText(0, 'Second', 'user'))
+    addNote()
+    expect(recipe.notes.map((note) => note.text.fullString())).toEqual(['First', 'Second'])
+  })
+
+  it('adds nothing for a blank note', () => {
+    const { recipe } = renderDetail({ userName: 'Bren' })
+    addNote()
+    act(() => noteDraft().insertText(0, '   ', 'user'))
+    addNote()
+    expect(recipe.notes.length).toBe(0)
   })
 
   it('shows rows added outside the component', () => {
@@ -234,7 +284,7 @@ describe('RecipeDetail', () => {
     act(() => {
       recipe.ingredients.add()
       recipe.tags.add('quick')
-      recipe.notes.add('Sam')
+      recipe.notes.add('Sam', RichText.fromString('Tasty'))
     })
     expect(rows('Ingredients')).toHaveLength(1)
     expect(rows('Tags')).toHaveLength(1)
@@ -258,7 +308,7 @@ describe('RecipeDetail in view mode', () => {
     eggs.quantity = Quantity.create(2, 'none')
     recipe.steps.insertAt(0, 'Simmer gently')
     recipe.tags.add('dinner')
-    recipe.notes.add('Sam').text.insertAt(0, 'Tasty')
+    recipe.notes.add('Sam', RichText.fromString('Tasty'))
     return recipe
   }
 
@@ -285,6 +335,15 @@ describe('RecipeDetail in view mode', () => {
     const note = rows('Notes')[0]
     expect(note).toHaveTextContent('Sam')
     expect(note).toHaveTextContent('Tasty')
+  })
+
+  it.each(['view', 'edit'] as const)('shows a note without when it was written in %s mode', (mode) => {
+    const recipe = filledRecipe()
+    render(<RecipeDetail recipe={recipe} initialMode={mode} />)
+    const note = rows('Notes')[0]
+    expect(note).toHaveTextContent('Sam')
+    expect(note).not.toHaveTextContent(new Date(recipe.notes[0].createdAt).toLocaleDateString())
+    expect(note.querySelector('time')).toBeNull()
   })
 
   it('omits sections that have nothing in them', () => {

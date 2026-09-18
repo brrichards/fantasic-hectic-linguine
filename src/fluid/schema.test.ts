@@ -2,7 +2,16 @@ import { TreeViewConfiguration } from 'fluid-framework'
 import { createIndependentTreeAlpha } from 'fluid-framework/alpha'
 import { SchemaFactoryBeta, createIndependentTreeView } from 'fluid-framework/beta'
 import { describe, expect, it } from 'vitest'
-import { Duration, Quantity, Recipe, RecipeCard, RecipeCards, bookConfig, recipeConfig } from './schema'
+import {
+  Duration,
+  Quantity,
+  Recipe,
+  RecipeCard,
+  RecipeCards,
+  RichText,
+  bookConfig,
+  recipeConfig,
+} from './schema'
 import { makeBookView } from '../test/fakeContainerSource'
 
 /** A hydrated recipe, as it would be the root of a recipe container. */
@@ -87,15 +96,15 @@ describe('RecipeBook and cards', () => {
 })
 
 describe('Recipe collections', () => {
-  it('notes.add records the author and a creation timestamp', () => {
+  it('notes.add records the author, the text and a creation timestamp', () => {
     const recipe = makeRecipe()
     const before = Date.now()
-    const note = recipe.notes.add('Bren')
+    const note = recipe.notes.add('Bren', RichText.fromString('Tasty'))
     const after = Date.now()
     expect(recipe.notes.length).toBe(1)
     expect(note.id.length).toBeGreaterThan(0)
     expect(note.author.fullString()).toBe('Bren')
-    expect(note.text.fullString()).toBe('')
+    expect(note.text.fullString()).toBe('Tasty')
     expect(note.createdAt).toBeGreaterThanOrEqual(before)
     expect(note.createdAt).toBeLessThanOrEqual(after)
   })

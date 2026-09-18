@@ -13,12 +13,12 @@ const startPage = () => screen.queryByRole('heading', { name: 'Open a book' })
 
 function openById(bookId: string) {
   fireEvent.change(screen.getByLabelText('Book id'), { target: { value: bookId } })
-  fireEvent.click(screen.getByRole('button', { name: 'Open book' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Open' }))
 }
 
 function createNamed(name: string) {
   fireEvent.change(screen.getByLabelText('Book name'), { target: { value: name } })
-  fireEvent.click(screen.getByRole('button', { name: 'Create book' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 }
 
 beforeEach(() => {
@@ -104,7 +104,7 @@ describe('Root before sign-in', () => {
     }
     render(<Root connect={slow} />)
     createNamed('Carol')
-    expect(screen.getByRole('button', { name: 'Create book' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
     fireEvent.submit(screen.getByLabelText('Book name').closest('form')!)
     release()
     await theApp()

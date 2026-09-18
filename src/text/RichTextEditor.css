@@ -7,13 +7,72 @@
   font-size: inherit;
 }
 
-.rich-text-prose .ql-editor {
-  min-height: 6rem;
+.rich-text .ql-toolbar.ql-snow {
+  border: 1px solid var(--control-border, #ccc);
+  border-radius: var(--radius, 4px) var(--radius, 4px) 0 0;
+  background: var(--control, #f3f3f3);
 }
 
-.rich-text-line .ql-container.ql-snow {
-  border: 1px solid var(--border, #ccc);
-  border-radius: 4px;
+.rich-text .ql-container.ql-snow {
+  border: 1px solid var(--control-border, #ccc);
+  border-radius: var(--radius, 4px);
+  background: var(--field, #fff);
+  color: var(--text-h, inherit);
+}
+
+.rich-text .ql-toolbar.ql-snow + .ql-container.ql-snow {
+  border-top: 0;
+  border-radius: 0 0 var(--radius, 4px) var(--radius, 4px);
+}
+
+.rich-text .ql-container.ql-snow:focus-within {
+  border-color: var(--accent, #06c);
+  box-shadow: 0 0 0 3px var(--accent-bg, transparent);
+}
+
+.rich-text .ql-editor:focus-visible {
+  outline: none;
+}
+
+.rich-text .ql-editor.ql-blank::before {
+  color: var(--text-muted, rgba(0, 0, 0, 0.6));
+  font-style: normal;
+}
+
+/* Toolbar icons: brown at rest, the accent when hovered or switched on. */
+.rich-text .ql-snow .ql-stroke {
+  stroke: var(--control-text, #444);
+}
+
+.rich-text .ql-snow .ql-fill {
+  fill: var(--control-text, #444);
+}
+
+.rich-text .ql-snow .ql-picker {
+  color: var(--control-text, #444);
+}
+
+.rich-text .ql-snow.ql-toolbar button:hover .ql-stroke,
+.rich-text .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.rich-text .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.rich-text .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+  stroke: var(--accent, #06c);
+}
+
+.rich-text .ql-snow.ql-toolbar button:hover .ql-fill,
+.rich-text .ql-snow.ql-toolbar button.ql-active .ql-fill {
+  fill: var(--accent, #06c);
+}
+
+.rich-text .ql-snow.ql-toolbar .ql-picker-label:hover,
+.rich-text .ql-snow.ql-toolbar .ql-picker-label.ql-active,
+.rich-text .ql-snow.ql-toolbar .ql-picker-item:hover,
+.rich-text .ql-snow.ql-toolbar .ql-picker-item.ql-selected {
+  color: var(--accent, #06c);
+}
+
+.rich-text-prose .ql-editor {
+  min-height: 6rem;
 }
 
 .rich-text-line .ql-editor {
