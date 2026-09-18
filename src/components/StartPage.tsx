@@ -47,7 +47,7 @@ export function StartPage({ remembered, error, busy = false, onOpen, onCreate, o
       )}
       {remembered.length > 0 && (
         <section>
-          <h2>Your books on this device</h2>
+          <h2>Books on this device</h2>
           <ul className="remembered-books">
             {remembered.map((profile) => (
               <li key={profile.bookId}>
@@ -79,7 +79,7 @@ export function StartPage({ remembered, error, busy = false, onOpen, onCreate, o
             onChange={(event) => setIdInput(event.target.value)}
           />
           <button type="submit" disabled={busy}>
-            Open book
+            Open
           </button>
         </form>
       </section>
@@ -93,7 +93,7 @@ export function StartPage({ remembered, error, busy = false, onOpen, onCreate, o
             onChange={(event) => setNameInput(event.target.value)}
           />
           <button type="submit" disabled={busy}>
-            Create book
+            Create
           </button>
         </form>
       </section>

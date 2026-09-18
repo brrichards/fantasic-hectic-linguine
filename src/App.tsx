@@ -173,7 +173,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
             value={visitInput}
             onChange={(event) => setVisitInput(event.target.value)}
           />
-          <button type="submit">Visit book</button>
+          <button type="submit">Visit</button>
         </form>
       </header>
       <div>
@@ -204,6 +204,7 @@ function App({ session, reload = () => location.reload() }: AppProps) {
           saved={saving?.isSaved(shown.card.id)}
           initialMode={shown.mode}
           isAuthor={isAuthor(shown.card)}
+          userName={session.homeBook.name}
         />
       ) : shown.status === 'opening' ? (
         <p className="muted empty-state">Opening…</p>

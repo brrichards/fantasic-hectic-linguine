@@ -6,15 +6,16 @@
   --surface: #fffdf9;
   --border: #e6dccd;
   --accent: #ab4e26;
-  --accent-hover: #933f1c;
   --accent-bg: rgba(171, 78, 38, 0.1);
   --accent-border: rgba(171, 78, 38, 0.45);
-  --on-accent: #fffdf9;
   --field: #f6eee1;
   --control: #eadcc7;
   --control-hover: #e0cfb5;
   --control-border: #cdb99b;
   --control-text: #4f3a2a;
+  --primary: #8f6a4a;
+  --primary-hover: #7a5538;
+  --on-primary: #fffdf9;
   --radius: 6px;
   --radius-card: 10px;
   --shadow: rgba(67, 45, 27, 0.08) 0 8px 24px -6px, rgba(67, 45, 27, 0.05) 0 2px 6px -2px;
@@ -56,6 +57,10 @@
 
 body {
   margin: 0;
+}
+
+main {
+  padding: 1.5rem;
 }
 
 h1,

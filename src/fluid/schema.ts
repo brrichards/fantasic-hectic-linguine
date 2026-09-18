@@ -94,10 +94,10 @@ export class Note extends sf.object('Note', {
 }) {}
 
 export class Notes extends sf.array('Notes', Note) {
-  add(author: string): Note {
+  add(author: string, text: RichText): Note {
     const note = new Note({
       author: RichText.fromString(author),
-      text: RichText.fromString(''),
+      text,
       createdAt: Date.now(),
     })
     this.insertAtEnd(note)

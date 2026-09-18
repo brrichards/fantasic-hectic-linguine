@@ -18,14 +18,46 @@
 }
 
 .recipe-list {
-  border-right: 1px solid var(--border);
-  padding-right: 1rem;
   min-width: 0;
-  overflow: hidden;
+}
+
+.recipe-detail {
+  min-width: 0;
+  align-self: start;
+  padding: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 720px) {
+  .recipe-detail {
+    padding: 1rem;
+  }
 }
 
 .recipe-detail section {
   margin-bottom: 1.5rem;
+}
+
+/* Section labels, but not headings a person typed into the recipe's own text. */
+.recipe-detail h3:not(:where(.rich-text-view, .ql-editor) *) {
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.recipe-detail .card-controls {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9em;
 }
 
 h2,
@@ -53,6 +85,18 @@ h3 {
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
+  margin-bottom: 0.15rem;
+  border-radius: var(--radius);
+}
+
+.recipe-list-item:hover {
+  background: var(--accent-bg);
+}
+
+/* The selected row: a tint and an accent bar, neither of which moves the text. */
+.recipe-list-item:has(> [aria-current='true']) {
+  background: var(--accent-bg);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .recipe-list-title {
@@ -62,21 +106,39 @@ h3 {
   text-align: left;
   background: none;
   border: none;
-  padding: 0.35rem 0.5rem;
-  border-radius: 4px;
-  color: inherit;
+  padding: 0.45rem 0.6rem;
+  color: var(--text);
   font: inherit;
   cursor: pointer;
 }
 
-.recipe-list-title:hover {
-  background: var(--accent-bg);
+.recipe-list-title[aria-current='true'] {
+  color: var(--text-h);
+  font-weight: 600;
 }
 
-.recipe-list-title[aria-current='true'] {
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-  color: var(--text-h);
+.recipe-list-item .icon-button {
+  background: none;
+  border-color: transparent;
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+}
+
+.recipe-list-item .icon-button:hover {
+  background: var(--control-hover);
+  color: var(--control-text);
+}
+
+/* With a mouse, the remove button stays out of the way until its row is in use. */
+@media (hover: hover) {
+  .recipe-list-item .icon-button {
+    opacity: 0;
+  }
+
+  .recipe-list-item:hover .icon-button,
+  .recipe-list-item:focus-within .icon-button {
+    opacity: 1;
+  }
 }
 
 .row {
@@ -101,9 +163,16 @@ h3 {
   gap: 0.5rem;
 }
 
-.note-header time {
-  font-size: 0.8em;
-  white-space: nowrap;
+.note-header .icon-button {
+  margin-left: auto;
+}
+
+.note-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .row-controls {
@@ -180,9 +249,27 @@ button:where(:hover:not(:disabled)) {
   background: var(--control-hover);
 }
 
+/* A form's submit button is its main action, as is copying in a copy row. */
+button[type='submit'],
+.copy-link button {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+button[type='submit']:hover:not(:disabled),
+.copy-link button:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
 button:disabled {
   cursor: default;
   opacity: 0.4;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
 }
 
 .icon-button {
@@ -221,18 +308,18 @@ button:disabled {
 }
 
 .mode-toggle button:first-child {
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--radius) 0 0 var(--radius);
 }
 
 .mode-toggle button:last-child {
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
   margin-left: -1px;
 }
 
 .mode-toggle button[aria-pressed='true'] {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--text-h);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
   position: relative;
 }
 
@@ -242,6 +329,15 @@ button:disabled {
 
 .recipe-view-title {
   margin: 0;
+  font-size: 2.1rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 720px) {
+  .recipe-view-title {
+    font-size: 1.6rem;
+  }
 }
 
 .recipe-view .title-row {
@@ -249,16 +345,48 @@ button:disabled {
 }
 
 .recipe-summary {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  color: var(--text-muted);
+  font-size: 0.95em;
 }
 
 .ingredient-list {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: 1.25rem;
+}
+
+.ingredient-list li {
+  margin-bottom: 0.3rem;
+}
+
+.ingredient-list li::marker {
+  color: var(--accent);
+}
+
+.ingredient-quantity {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.recipe-view .steps {
+  line-height: 1.7;
+}
+
+.recipe-view .steps li {
+  margin-bottom: 0.5rem;
 }
 
 .note-view {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--bg);
+}
+
+.note-view .note-header {
+  margin-bottom: 0.25rem;
+  color: var(--text-h);
 }
 
 .title-row {
@@ -276,6 +404,7 @@ button:disabled {
   display: block;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-tags {
@@ -397,9 +526,10 @@ select {
   max-width: 40vw;
 }
 
-.book-id-row button {
+/* Paired rows line up: every button is one width, so the fields beside them match too. */
+.book-id-row button,
+.start-page .inline-form button {
   width: 8rem;
-  text-align: left;
   white-space: nowrap;
 }
 
@@ -433,16 +563,38 @@ select {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  width: 100%;
-  max-width: 28rem;
-  margin: 0 auto;
-  padding: 1.5rem;
-  text-align: left;
+  width: calc(100% - 2rem);
+  max-width: 30rem;
+  margin: 10vh auto 2rem;
+  padding: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 720px) {
+  .start-page {
+    margin-top: 1rem;
+    padding: 1.25rem;
+  }
+}
+
+.start-page h1 {
+  margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
 }
 
 .start-page h2 {
   margin: 0;
-  font-size: 1em;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .remembered-books {
@@ -451,13 +603,17 @@ select {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .remembered-books li {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.remembered-books li + li {
+  border-top: 1px solid var(--border);
 }
 
 .remembered-books .muted {

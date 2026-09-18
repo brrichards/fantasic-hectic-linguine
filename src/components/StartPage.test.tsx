@@ -21,22 +21,22 @@ function submit(label: string, value: string, button: string) {
 describe('StartPage', () => {
   it('opens the book whose id is pasted, in compact or full form', () => {
     const { onOpen } = setup()
-    submit('Book id', ` ${compactFromUuid(uuid)} `, 'Open book')
+    submit('Book id', ` ${compactFromUuid(uuid)} `, 'Open')
     expect(onOpen).toHaveBeenLastCalledWith(uuid)
-    submit('Book id', uuid, 'Open book')
+    submit('Book id', uuid, 'Open')
     expect(onOpen).toHaveBeenLastCalledWith(uuid)
   })
 
   it('creates a book with the typed name, trimmed', () => {
     const { onCreate } = setup()
-    submit('Book name', '  Carol ', 'Create book')
+    submit('Book name', '  Carol ', 'Create')
     expect(onCreate).toHaveBeenCalledExactlyOnceWith('Carol')
   })
 
   it('does nothing for a blank id or a blank name', () => {
     const { onOpen, onCreate } = setup()
-    submit('Book id', '   ', 'Open book')
-    submit('Book name', '   ', 'Create book')
+    submit('Book id', '   ', 'Open')
+    submit('Book name', '   ', 'Create')
     expect(onOpen).not.toHaveBeenCalled()
     expect(onCreate).not.toHaveBeenCalled()
   })

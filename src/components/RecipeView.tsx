@@ -91,9 +91,6 @@ export function RecipeView({ recipe, titleControls }: RecipeViewProps) {
                   <strong>
                     <RichTextView node={note.author} inline />
                   </strong>
-                  <time dateTime={new Date(note.createdAt).toISOString()}>
-                    {new Date(note.createdAt).toLocaleString()}
-                  </time>
                 </div>
                 <RichTextView node={note.text} />
               </li>
