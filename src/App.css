@@ -3,8 +3,10 @@
   grid-template-columns: 16rem minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   gap: 1.5rem;
-  padding: 1.5rem;
-  text-align: left;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 1.5rem;
   flex: 1;
 }
 
@@ -150,15 +152,32 @@ h3 {
 input,
 button {
   font: inherit;
-  color: inherit;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  color: var(--text-h);
+  background: var(--field);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
   padding: 0.35rem 0.6rem;
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 button {
   cursor: pointer;
+  background: var(--control);
+  color: var(--control-text);
+}
+
+/* :where keeps this at element specificity, so link and list buttons keep their own hover. */
+button:where(:hover:not(:disabled)) {
+  background: var(--control-hover);
 }
 
 button:disabled {
@@ -217,6 +236,10 @@ button:disabled {
   position: relative;
 }
 
+.recipe-view {
+  overflow-wrap: anywhere;
+}
+
 .recipe-view-title {
   margin: 0;
 }
@@ -272,10 +295,10 @@ button:disabled {
 
 select {
   font: inherit;
-  color: inherit;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  color: var(--text-h);
+  background: var(--field);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
   padding: 0.35rem 0.6rem;
 }
 
@@ -292,7 +315,8 @@ select {
   margin-bottom: 0.75rem;
   border: 1px solid var(--accent-border);
   background: var(--accent-bg);
-  border-radius: 4px;
+  border-radius: var(--radius);
+  color: var(--text-h);
   font-size: 0.9em;
 }
 
@@ -321,18 +345,25 @@ select {
 .app-header {
   grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 0.75rem 0;
+  font-size: 0.9em;
+  /* Paints the bar, and its bottom rule, across the full window width. */
+  background: var(--surface);
+  box-shadow:
+    0 0 0 100vmax var(--surface),
+    0 1px 0 100vmax var(--border);
+  clip-path: inset(0 -100vmax -1px);
 }
 
 .book-identity {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
 }
 
 .signed-in {
