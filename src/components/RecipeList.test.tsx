@@ -29,6 +29,7 @@ function renderList(cards: RecipeCards, props: Partial<Parameters<typeof RecipeL
       selectedId={undefined}
       onSelect={noop}
       onCreate={noop}
+      isOwner
       {...props}
     />,
   )
@@ -81,6 +82,20 @@ describe('RecipeList', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove soup/i }))
     expect(cards.length).toBe(0)
     expect(screen.queryByRole('button', { name: 'Soup' })).not.toBeInTheDocument()
+  })
+
+  it('lets a visitor pick cards but not add or remove them', () => {
+    const cards = makeCards()
+    const soup = cards.add(card('Soup'))
+    cards.add(card('Bread'))
+    const onSelect = vi.fn()
+    renderList(cards, { isOwner: false, onSelect })
+    expect(screen.queryByRole('textbox', { name: /new recipe/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /add recipe/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^remove /i })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
+    expect(onSelect).toHaveBeenCalledWith(soup.id)
+    expect(screen.getByRole('button', { name: 'Bread' })).toBeInTheDocument()
   })
 
   it('re-renders when cards are added or retitled outside the component', () => {

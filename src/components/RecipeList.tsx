@@ -15,6 +15,8 @@ interface RecipeListProps {
   selectedId: string | undefined
   onSelect: (id: string) => void
   onCreate: (title: string) => void
+  /** Whether the viewer owns this book. Visitors can neither add nor remove cards. */
+  isOwner: boolean
   saving?: SaveControls
   /** Resolves a book id to its owner's name, when known. */
   nameOfBook?: (bookId: string) => string | undefined
@@ -28,6 +30,7 @@ export function RecipeList({
   selectedId,
   onSelect,
   onCreate,
+  isOwner,
   saving,
   nameOfBook,
   onVisitBook,
@@ -46,15 +49,17 @@ export function RecipeList({
   return (
     <aside className="recipe-list">
       <h2>Recipes</h2>
-      <form onSubmit={submit} className="inline-form">
-        <input
-          aria-label="New recipe title"
-          placeholder="New recipe title"
-          value={draftTitle}
-          onChange={(event) => setDraftTitle(event.target.value)}
-        />
-        <button type="submit">Add recipe</button>
-      </form>
+      {isOwner && (
+        <form onSubmit={submit} className="inline-form">
+          <input
+            aria-label="New recipe title"
+            placeholder="New recipe title"
+            value={draftTitle}
+            onChange={(event) => setDraftTitle(event.target.value)}
+          />
+          <button type="submit">Add recipe</button>
+        </form>
+      )}
       {cards.length === 0 ? (
         <p className="muted recipe-list-empty">No recipes yet.</p>
       ) : (
@@ -66,7 +71,7 @@ export function RecipeList({
               bookId={bookId}
               selected={card.id === selectedId}
               onSelect={onSelect}
-              onRemove={() => cards.removeById(card.id)}
+              onRemove={isOwner ? () => cards.removeById(card.id) : undefined}
               saving={saving}
               nameOfBook={nameOfBook}
               onVisitBook={onVisitBook}
@@ -83,7 +88,8 @@ interface RecipeCardItemProps {
   bookId: string
   selected: boolean
   onSelect: (id: string) => void
-  onRemove: () => void
+  /** Absent when the viewer may not remove cards from this book. */
+  onRemove?: () => void
   saving?: SaveControls
   nameOfBook?: (bookId: string) => string | undefined
   onVisitBook?: (bookId: string) => void
@@ -138,9 +144,11 @@ function RecipeCardItem({
           {saved ? 'Saved' : 'Save to my book'}
         </button>
       )}
-      <button type="button" className="icon-button" aria-label={`Remove ${card.title}`} onClick={onRemove}>
-        ×
-      </button>
+      {onRemove && (
+        <button type="button" className="icon-button" aria-label={`Remove ${card.title}`} onClick={onRemove}>
+          ×
+        </button>
+      )}
     </li>
   )
 }
