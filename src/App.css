@@ -82,8 +82,9 @@ h3 {
 
 .recipe-list-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
+  column-gap: 0.25rem;
   min-width: 0;
   margin-bottom: 0.15rem;
   border-radius: var(--radius);
@@ -461,8 +462,19 @@ select {
   text-decoration: underline;
 }
 
-.card-origin {
+/* On its own line under the row, so it never takes width from the title. */
+.card-origin-line {
+  flex-basis: 100%;
+  min-width: 0;
+  padding: 0 0.6rem 0.4rem;
   font-size: 0.75em;
+  line-height: 1.2;
+}
+
+.card-origin {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .save-button {

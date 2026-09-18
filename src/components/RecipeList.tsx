@@ -130,15 +130,6 @@ function RecipeCardItem({
           </span>
         )}
       </button>
-      {fromElsewhere && (
-        <button
-          type="button"
-          className="link-button card-origin"
-          onClick={() => onVisitBook?.(card.authorId)}
-        >
-          {originName(nameOfBook?.(card.authorId))}
-        </button>
-      )}
       {saving && (
         <button type="button" className="save-button" disabled={saved} onClick={() => saving.onSave(card.id)}>
           {saved ? 'Saved' : 'Save to my book'}
@@ -148,6 +139,17 @@ function RecipeCardItem({
         <button type="button" className="icon-button" aria-label={`Remove ${card.title}`} onClick={onRemove}>
           ×
         </button>
+      )}
+      {fromElsewhere && (
+        <div className="card-origin-line">
+          <button
+            type="button"
+            className="link-button card-origin"
+            onClick={() => onVisitBook?.(card.authorId)}
+          >
+            {originName(nameOfBook?.(card.authorId))}
+          </button>
+        </div>
       )}
     </li>
   )
